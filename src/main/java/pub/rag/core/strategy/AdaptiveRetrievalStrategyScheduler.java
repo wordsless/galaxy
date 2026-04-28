@@ -24,6 +24,7 @@
 
 package pub.rag.core.strategy;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import lombok.NonNull;
 import pub.rag.core.*;
 import pub.rag.core.entity.PromptContext;
@@ -68,7 +69,7 @@ public class AdaptiveRetrievalStrategyScheduler<T extends RetrievalQualityRespon
         var rewritedQueries = super.preprocessor.process(rawQuery, outNERs);
         var rewritedQuery = SimilarityUtil.getBestRewrittenQuery(rawQuery, rewritedQueries);
         var promptContext = new PromptContext(super.template, rawQuery, outNERs, List.of(rewritedQuery), null, null, null, null);
-        var adaptiveDecisionResponse = this.adaptiveRouter.invoke(3, true, promptContext, AdaptiveDecisionResponse.class);
+        var adaptiveDecisionResponse = this.adaptiveRouter.delegate(3, true, promptContext, new TypeReference<AdaptiveDecisionResponse>(){});
         var type = adaptiveDecisionResponse.getRetrievalType();
 
         if (type == null) {
@@ -77,7 +78,7 @@ public class AdaptiveRetrievalStrategyScheduler<T extends RetrievalQualityRespon
 
         return switch (type) {
             case "NO_RETRIEVAL" -> {
-                var resp = nonRetrievalProxy.invoke(3, true, promptContext, RetrievalQualityResponse.class);
+                var resp = nonRetrievalProxy.delegate(3, true, promptContext, new TypeReference<RetrievalQualityResponse>(){});
                 yield resp.getAnswer();
             }
             case "SINGLE_RETRIEVAL" -> singleRetrievalStrategy.answer(rawQuery);

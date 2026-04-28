@@ -22,31 +22,27 @@
  * SOFTWARE.
  */
 
-package pub.rag.core.entity;
+package pub.rag.core.algorithm.tree;
 
-import lombok.*;
+public abstract class TreeTraverser<T> {
 
-import java.util.ArrayList;
-import java.util.List;
+    protected void preorder(TreeNode<T> root, Visitor<T> visitor) {
+        if (root == null) {
+            return;
+        }
+        visitor.visit(root);
+        for(var child : root.getChildren()) {
+            preorder(child, visitor);
+        }
+    }
 
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-@With
-@ToString(callSuper = false, doNotUseGetters = true)
-public class Document {
-
-    private long id;
-
-    private Document parentId;
-
-    private double score;
-
-    private String fragment;
-
-    private List<Document> children = new ArrayList<>();
-
-    private List<Document> relatedNodes = new ArrayList<>();
-
+    protected void postorder(TreeNode<T> root, Visitor<T> visitor) {
+        if (root == null) {
+            return;
+        }
+        for(var child : root.getChildren()) {
+            postorder(child, visitor);
+        }
+        visitor.visit(root);
+    }
 }

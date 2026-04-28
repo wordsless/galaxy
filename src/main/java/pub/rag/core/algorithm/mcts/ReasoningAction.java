@@ -22,31 +22,9 @@
  * SOFTWARE.
  */
 
-package pub.rag.core.entity;
+package pub.rag.core.algorithm.mcts;
 
-import lombok.*;
+public enum ReasoningAction {
 
-import java.util.ArrayList;
-import java.util.List;
-
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-@With
-@ToString(callSuper = false, doNotUseGetters = true)
-public class Document {
-
-    private long id;
-
-    private Document parentId;
-
-    private double score;
-
-    private String fragment;
-
-    private List<Document> children = new ArrayList<>();
-
-    private List<Document> relatedNodes = new ArrayList<>();
-
+    SAY, QT, RA, DA, SA
 }

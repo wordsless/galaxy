@@ -22,31 +22,40 @@
  * SOFTWARE.
  */
 
-package pub.rag.core.entity;
+package pub.rag.core.algorithm.mcts;
 
-import lombok.*;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import pub.rag.core.algorithm.tree.TreeNode;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-@With
-@ToString(callSuper = false, doNotUseGetters = true)
-public class Document {
+@EqualsAndHashCode(callSuper = true)
+public class MCTSNode<T> extends TreeNode<T> {
 
-    private long id;
+    private ReasoningAction action;
 
-    private Document parentId;
+    private int visitCount;
 
-    private double score;
+    private double valueSum;
 
-    private String fragment;
+    private boolean selected;
 
-    private List<Document> children = new ArrayList<>();
+    private boolean simulated;
 
-    private List<Document> relatedNodes = new ArrayList<>();
+    private boolean backpropagated;
+
+    public MCTSNode(final TreeNode<T> parent,
+                    final List<TreeNode<T>> child,
+                    final ReasoningAction action,
+                    final int visitCount,
+                    final double valueSum) {
+        super(parent == null ? 0 : parent.depth + 1, parent, child);
+        this.action = action;
+        this.visitCount = visitCount;
+        this.valueSum = valueSum;
+        this.selected = false;
+    }
 
 }

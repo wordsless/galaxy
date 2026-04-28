@@ -25,7 +25,9 @@
 package pub.rag.core;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.networknt.schema.Error;
 import com.networknt.schema.InputFormat;
 import com.networknt.schema.Schema;
 import dev.langchain4j.model.chat.ChatModel;
@@ -127,7 +129,10 @@ public class ChatModelDelegator {
      * @param context prompt building context
      * @return deserialized target object
      */
-    public <T> T invoke(final int maxRetryCount, final boolean validatable, final PromptContext context, final Class<T> resultType) {
+    public <T> T delegate(final int maxRetryCount,
+                          final boolean validatable,
+                          final PromptContext context,
+                          final TypeReference<T> typeReference) {
         // Input parameter validation
         if (maxRetryCount < 1) {
             throw new ChatModelInvokerException("Max retry count must be greater than 0");
@@ -165,7 +170,7 @@ public class ChatModelDelegator {
                 if (validatable) {
                     List<String> errors = schema.validate(response, InputFormat.JSON)
                             .stream()
-                            .map(error -> error.getMessage())
+                            .map(Error::getMessage)
                             .toList();
 
                     if (!errors.isEmpty()) {
@@ -177,10 +182,9 @@ public class ChatModelDelegator {
                 }
 
                 // 4. Deserialize JSON to target object
-                T result = mapper.readValue(response, resultType);
+                T result = mapper.readValue(response, mapper.constructType(typeReference.getType()));
                 logger.info("LLM invocation succeeded, deserialization completed, retry count: {}", retryCount);
                 return result;
-
             } catch (JsonProcessingException e) {
                 // JSON deserialization exception only
                 logger.error("JSON deserialization failed, current retry count: {}", retryCount, e);

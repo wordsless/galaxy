@@ -22,31 +22,26 @@
  * SOFTWARE.
  */
 
-package pub.rag.core.entity;
+package pub.rag.core.algorithm.tree;
 
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @Data
 @Builder
-@NoArgsConstructor
 @AllArgsConstructor
-@With
-@ToString(callSuper = false, doNotUseGetters = true)
-public class Document {
+public class TreeNode<T> {
 
-    private long id;
+    protected int depth = 0;
 
-    private Document parentId;
+    protected TreeNode<T> parent;
 
-    private double score;
+    protected List<TreeNode<T>> children;
 
-    private String fragment;
-
-    private List<Document> children = new ArrayList<>();
-
-    private List<Document> relatedNodes = new ArrayList<>();
-
+    public boolean isLeaf() {
+        return children == null || children.isEmpty();
+    }
 }

@@ -22,31 +22,9 @@
  * SOFTWARE.
  */
 
-package pub.rag.core.entity;
+package pub.rag.core.algorithm.tree;
 
-import lombok.*;
+public interface Visitor<T> {
 
-import java.util.ArrayList;
-import java.util.List;
-
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-@With
-@ToString(callSuper = false, doNotUseGetters = true)
-public class Document {
-
-    private long id;
-
-    private Document parentId;
-
-    private double score;
-
-    private String fragment;
-
-    private List<Document> children = new ArrayList<>();
-
-    private List<Document> relatedNodes = new ArrayList<>();
-
+    void visit(TreeNode<T> node);
 }

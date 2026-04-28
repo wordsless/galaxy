@@ -22,31 +22,11 @@
  * SOFTWARE.
  */
 
-package pub.rag.core.entity;
+package pub.rag.core.algorithm.mcts;
 
-import lombok.*;
+import pub.rag.core.algorithm.tree.TreeNode;
 
-import java.util.ArrayList;
-import java.util.List;
+public interface Scorer<T> {
 
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-@With
-@ToString(callSuper = false, doNotUseGetters = true)
-public class Document {
-
-    private long id;
-
-    private Document parentId;
-
-    private double score;
-
-    private String fragment;
-
-    private List<Document> children = new ArrayList<>();
-
-    private List<Document> relatedNodes = new ArrayList<>();
-
+    double score(TreeNode<T> node);
 }

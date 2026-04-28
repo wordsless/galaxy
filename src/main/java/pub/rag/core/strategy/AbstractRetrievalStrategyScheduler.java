@@ -24,7 +24,6 @@
 
 package pub.rag.core.strategy;
 
-import lombok.NonNull;
 import pub.rag.core.*;
 
 /**
@@ -35,25 +34,27 @@ import pub.rag.core.*;
 public abstract class AbstractRetrievalStrategyScheduler<T> implements RetrievalStrategyScheduler, AutoCloseable {
 
     protected String template;
-    protected ChatModelDelegator qualityEvaluator;
+    protected ChatModelDelegator chatModelDelegator;
     protected Preprocessor preprocessor;
     protected Retriever retriever;
     protected Aligner aligner;
     protected Reranker reranker;
 
-    public AbstractRetrievalStrategyScheduler(@NonNull final String template,
-                                              @NonNull final ChatModelDelegator chatModel,
-                                              @NonNull final Preprocessor preprocessor,
-                                              @NonNull final Retriever retriever,
-                                              @NonNull final Aligner aligner,
-                                              @NonNull final Reranker reranker) {
+    public AbstractRetrievalStrategyScheduler(final String template,
+                                              final ChatModelDelegator chatModelDelegator,
+                                              final Preprocessor preprocessor,
+                                              final Retriever retriever,
+                                              final Aligner aligner,
+                                              final Reranker reranker) {
         this.template = template;
-        this.qualityEvaluator = chatModel;
+        this.chatModelDelegator = chatModelDelegator;
         this.preprocessor = preprocessor;
         this.retriever = retriever;
         this.aligner = aligner;
         this.reranker = reranker;
     }
+
+    public abstract T retrieve(String query);
 
     /**
      * Close resources (empty implementation for base class, to be overridden by subclasses if needed)

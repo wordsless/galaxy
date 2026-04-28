@@ -24,6 +24,7 @@
 
 package pub.rag.core.strategy;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import lombok.NonNull;
 import pub.rag.core.*;
 import pub.rag.core.entity.Document;
@@ -244,7 +245,7 @@ public class AutonomousRetrievalStrategyScheduler<T extends RetrievalQualityResp
         );
 
         // Invoke quality evaluator with predefined parameters
-        return (T) qualityEvaluator.invoke(MAXIMUM_RETRY_COUNT, SCHEMA_VALIDATABLE, promptContext, RetrievalQualityResponse.class);
+        return (T) chatModelDelegator.delegate(MAXIMUM_RETRY_COUNT, SCHEMA_VALIDATABLE, promptContext, new TypeReference<RetrievalQualityResponse>() {});
     }
 
 

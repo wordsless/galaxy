@@ -24,6 +24,7 @@
 
 package pub.rag.core.strategy;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import lombok.NonNull;
 import pub.rag.core.*;
 import pub.rag.core.entity.Document;
@@ -241,6 +242,7 @@ public class SingleRetrievalStrategyScheduler<T extends RetrievalQualityResponse
      * @param documents 待评估的文档列表
      * @return 质量评估响应
      */
+    @SuppressWarnings("uncheck")
     private T evaluateQuality(String rawQuery, List<Document> documents) {
         // 转换文档列表为字符串列表（过滤null文档）
         List<String> documentStrList = documents.stream()
@@ -267,7 +269,7 @@ public class SingleRetrievalStrategyScheduler<T extends RetrievalQualityResponse
 
         // 调用质量评估器（带预定义参数）
         try {
-            return (T) qualityEvaluator.invoke(MAXIMUM_RETRY_COUNT, SCHEMA_VALIDATABLE, promptContext, RetrievalQualityResponse.class);
+            return (T) chatModelDelegator.delegate(MAXIMUM_RETRY_COUNT, SCHEMA_VALIDATABLE, promptContext, new TypeReference<RetrievalQualityResponse>(){});
         } catch (Exception e) {
             throw new RetrievalStrategyScheduleException(
                     String.format("Quality evaluation failed (query: [%s]), error: %s",

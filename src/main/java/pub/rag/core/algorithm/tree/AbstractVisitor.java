@@ -22,31 +22,25 @@
  * SOFTWARE.
  */
 
-package pub.rag.core.entity;
+package pub.rag.core.algorithm.tree;
 
-import lombok.*;
-
-import java.util.ArrayList;
 import java.util.List;
 
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-@With
-@ToString(callSuper = false, doNotUseGetters = true)
-public class Document {
+public abstract class AbstractVisitor<T> implements Visitor<T> {
 
-    private long id;
+    public void findLeaves(final TreeNode<T> node, final List<TreeNode<T>> leaves) {
+        if (node == null || leaves == null) {
+            return;
+        }
 
-    private Document parentId;
+        if(node.children == null || node.children.isEmpty()) {
+            leaves.add(node);
+            return;
+        }
 
-    private double score;
-
-    private String fragment;
-
-    private List<Document> children = new ArrayList<>();
-
-    private List<Document> relatedNodes = new ArrayList<>();
-
+        var children = node.getChildren();
+        for(var child : children) {
+            findLeaves(child, leaves);
+        }
+    }
 }
