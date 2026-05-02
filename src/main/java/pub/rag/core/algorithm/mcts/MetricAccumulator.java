@@ -24,7 +24,9 @@
 
 package pub.rag.core.algorithm.mcts;
 
-public enum ReasoningAction {
+import pub.rag.core.algorithm.tree.TreeNode;
 
-    SAY, QT, RA, DA, SA, NONE
+public interface MetricAccumulator {
+
+    double accumulate(TreeNode<?> node);
 }

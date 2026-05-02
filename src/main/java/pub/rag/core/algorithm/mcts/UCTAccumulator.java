@@ -24,7 +24,23 @@
 
 package pub.rag.core.algorithm.mcts;
 
-public enum ReasoningAction {
+import pub.rag.core.algorithm.tree.TreeNode;
 
-    SAY, QT, RA, DA, SA, NONE
+public class UCTAccumulator<T> implements MetricAccumulator<T> {
+
+    private static final double EXPLORATION_CONSTANT = Math.sqrt(2);
+
+    @Override
+    public double accumulate(TreeNode<T> node) {
+        var child = (ReasonTreeNode<T>) node;
+        int childVisits = child.getVisitCount();
+        if (childVisits == 0) {
+            return Double.POSITIVE_INFINITY; // 未访问节点优先探索
+        }
+        double exploitation = child.getValueSum() / childVisits; // Q(s,a)/N(s)
+        ReasonTreeNode<?> parent = (ReasonTreeNode<?>) child.getParent();
+        int parentVisits = parent.getVisitCount();
+        double exploration = EXPLORATION_CONSTANT * Math.sqrt(Math.log(parentVisits) / childVisits);
+        return exploitation + exploration;
+    }
 }

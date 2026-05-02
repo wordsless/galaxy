@@ -27,19 +27,47 @@ package pub.rag.core;
 import pub.rag.core.entity.PromptContext;
 import pub.rag.core.exception.PromptBuildException;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+
 /**
  * Interface for constructing AI prompts.
  * Defines the standard rule to build complete prompts based on query, context,
  * conversation history and errors.
  */
-public interface PromptProvider {
+public abstract class PromptProvider {
 
     /**
-     * Builds a formatted AI prompt using the provided context data
-     *
-     * @param context Contains all necessary information for prompt construction
-     * @return Formatted final prompt string
-     * @throws PromptBuildException If prompt construction fails due to invalid data, template error or other exceptions
+     * Reads a file from the classpath and returns its content as a string.
+     * @param fileName the file name (e.g., "config/test.properties")
+     * @return file content as a string
+     * @throws IllegalArgumentException if the file is not found in classpath
+     * @throws IOException if an I/O error occurs
      */
-    String buildPrompt(PromptContext context) throws PromptBuildException;
+    public String readFromClasspath(String fileName) throws IOException {
+        // Obtain the context class loader for the current thread (works in most environments)
+        ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+        // Alternative: ClassLoader.getSystemClassLoader()
+        // If using Class.getResourceAsStream("/" + fileName), note that a leading "/" means absolute path
+
+        try (InputStream is = classLoader.getResourceAsStream(fileName)) {
+            if (is == null) {
+                throw new IllegalArgumentException("File not found in classpath: " + fileName);
+            }
+            // Read all lines using UTF-8 encoding
+            StringBuilder content = new StringBuilder();
+            try (BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(is, StandardCharsets.UTF_8))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    content.append(line).append("\n");
+                }
+            }
+            return content.toString();
+        }
+    }
+
 }

@@ -44,7 +44,7 @@ public class PromptContext {
     /**
      * Present prompt template
      */
-    private String template;
+    private String templateAllName;
 
     /**
      * User's input query or question (Required)
@@ -69,7 +69,7 @@ public class PromptContext {
     /**
      * Historical conversation records between user and assistant (Optional)
      */
-    private List<Conversation> conversations;
+    private List<String> history;
 
     /**
      * Error messages from previous execution or validation (Optional)

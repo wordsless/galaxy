@@ -24,24 +24,46 @@
 
 package pub.rag.core.algorithm.tree;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Data
-@Builder
-@AllArgsConstructor
+@EqualsAndHashCode(callSuper = false)
 public class TreeNode<T> {
 
-    protected int depth = 0;
+    protected final int depth;
 
-    protected TreeNode<T> parent;
+    protected final TreeNode<?> parent;
 
-    protected List<TreeNode<T>> children;
+    protected final List<TreeNode<?>> children;
+
+    protected final List<TreeNode<?>> siblings;
+
+    protected T data;
+
+    public TreeNode(final int depth, final TreeNode<?> parent) {
+        this.data = null;
+        this.children = new ArrayList<>();
+        this.siblings = new ArrayList<>();
+        this.depth = depth;
+        this.parent = parent;
+    }
 
     public boolean isLeaf() {
-        return children == null || children.isEmpty();
+        return children.isEmpty();
     }
+
+    public int addSibling(final TreeNode<?> sibling) {
+        siblings.add(sibling);
+        return siblings.size();
+    }
+
+    public int addChild(final TreeNode<?> child) {
+        children.add(child);
+        return children.size();
+    }
+
 }

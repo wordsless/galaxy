@@ -88,7 +88,7 @@ public class AutonomousRetrievalStrategyScheduler<T extends RetrievalQualityResp
             T qualityResponse = this.singleRetrievalStrategy.retrieve(rawQuery);
 
             // Return immediately if quality meets threshold
-            if (qualityResponse.getQuality() >= qualityThreshold) {
+            if (qualityResponse.getConfidence() >= qualityThreshold) {
                 return getValidAnswer((T) qualityResponse);
             }
 
@@ -150,9 +150,9 @@ public class AutonomousRetrievalStrategyScheduler<T extends RetrievalQualityResp
             throw new RetrievalStrategyScheduleException(
                     "Quality evaluation returned null response, original query: " + rawQuery);
         }
-        if (qualityResponse.getQuality() < 0) {
+        if (qualityResponse.getConfidence() < 0) {
             throw new RetrievalStrategyScheduleException(
-                    "Invalid negative quality value: " + qualityResponse.getQuality() + ", original query: " + rawQuery);
+                    "Invalid negative quality value: " + qualityResponse.getConfidence() + ", original query: " + rawQuery);
         }
     }
 
@@ -195,13 +195,13 @@ public class AutonomousRetrievalStrategyScheduler<T extends RetrievalQualityResp
             validateQualityResponse(retryQualityResponse, rawQuery);
 
             // Check if quality meets threshold
-            if (retryQualityResponse.getQuality() >= qualityThreshold) {
+            if (retryQualityResponse.getConfidence() >= qualityThreshold) {
                 bestAnswer = retryQualityResponse;
                 return; // Exit retry loop immediately
             }
 
             // Update best answer if current retry result is better
-            if (retryQualityResponse.getQuality() > bestAnswer.getQuality()) {
+            if (retryQualityResponse.getConfidence() > bestAnswer.getConfidence()) {
                 bestAnswer = retryQualityResponse;
             }
 
@@ -249,4 +249,8 @@ public class AutonomousRetrievalStrategyScheduler<T extends RetrievalQualityResp
     }
 
 
+    @Override
+    public T retrieve(String query) {
+        return null;
+    }
 }

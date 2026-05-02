@@ -45,4 +45,5 @@ public abstract class TreeTraverser<T> {
         }
         visitor.visit(root);
     }
+
 }

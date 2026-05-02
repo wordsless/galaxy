@@ -229,10 +229,10 @@ public class SingleRetrievalStrategyScheduler<T extends RetrievalQualityResponse
             throw new RetrievalStrategyScheduleException(
                     String.format("Quality evaluation returned null response, original query: [%s]", rawQuery));
         }
-        if (qualityResponse.getQuality() < 0) {
+        if (qualityResponse.getConfidence() < 0) {
             throw new RetrievalStrategyScheduleException(
                     String.format("Invalid negative quality value: %d (query: [%s])",
-                            qualityResponse.getQuality(), rawQuery));
+                            qualityResponse.getConfidence(), rawQuery));
         }
     }
 

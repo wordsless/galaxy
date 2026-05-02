@@ -24,9 +24,19 @@
 
 package pub.rag.core.algorithm.mcts;
 
-import pub.rag.core.algorithm.tree.TreeNode;
+public class ReasoningTreeNodeSimulator implements Simulator {
 
-public interface Scorer<T> {
+    private int depth;
 
-    double score(TreeNode<T> node);
+    private int width;
+
+    public ReasoningTreeNodeSimulator(final int maxDepth, final int width) {
+        depth = 0;
+        width = 0;
+    }
+
+    @Override
+    public double simulate(ReasonTreeNode<?> node) {
+        return 0;
+    }
 }

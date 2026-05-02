@@ -24,7 +24,7 @@
 
 package pub.rag.core.algorithm.mcts;
 
-public enum ReasoningAction {
+public interface Expander<T> {
 
-    SAY, QT, RA, DA, SA, NONE
+    ReasonTreeNode<T> expand(ReasonTreeNode<T> parent, ReasoningAction action);
 }

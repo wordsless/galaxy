@@ -24,7 +24,50 @@
 
 package pub.rag.core.algorithm.mcts;
 
-public enum ReasoningAction {
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import pub.rag.core.algorithm.tree.TreeNode;
 
-    SAY, QT, RA, DA, SA, NONE
+import java.util.Arrays;
+import java.util.List;
+
+@Data
+@EqualsAndHashCode(callSuper = true)
+public class ReasonTreeNode<T> extends TreeNode<T> {
+
+    protected ReasoningAction action;
+
+    protected int visitCount;
+
+    protected double valueSum;
+
+    protected boolean selected;
+
+    protected boolean simulated;
+
+    protected boolean backpropagated;
+
+    protected List<ReasoningAction> candidates;
+
+    public ReasonTreeNode(final ReasonTreeNode<?> parent, final ReasoningAction action) {
+        super(parent == null ? 0 : parent.getDepth() + 1, parent);
+        this.action = action;
+        this.visitCount = 0;
+        this.valueSum = 0;
+        this.selected = false;
+        this.candidates = Arrays.asList(ReasoningAction.values());
+        this.candidates.remove(action);
+    }
+
+    public boolean hasCompletelyExpanded() {
+        return candidates.isEmpty();
+    }
+
+    public ReasoningAction nextAction(boolean needRemove) {
+        var next = candidates.getFirst();
+        if(needRemove)
+            candidates.removeFirst();
+        return next;
+    }
+
 }

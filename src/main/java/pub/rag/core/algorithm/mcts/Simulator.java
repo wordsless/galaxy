@@ -24,7 +24,7 @@
 
 package pub.rag.core.algorithm.mcts;
 
-public enum ReasoningAction {
+public interface Simulator {
 
-    SAY, QT, RA, DA, SA, NONE
+    double simulate(ReasonTreeNode<?> node);
 }

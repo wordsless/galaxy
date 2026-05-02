@@ -22,9 +22,18 @@
  * SOFTWARE.
  */
 
-package pub.rag.core.algorithm.mcts;
+package pub.rag.core.response;
 
-public enum ReasoningAction {
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-    SAY, QT, RA, DA, SA, NONE
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public abstract class ConfidenceResponse {
+
+    protected double confidence;
 }

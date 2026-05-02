@@ -22,40 +22,21 @@
  * SOFTWARE.
  */
 
-package pub.rag.core.algorithm.mcts;
+package pub.rag.core.response;
 
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import pub.rag.core.algorithm.tree.TreeNode;
+import lombok.*;
 
 import java.util.List;
 
-@Data
 @EqualsAndHashCode(callSuper = true)
-public class MCTSNode<T> extends TreeNode<T> {
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class SummaryAnswerResponse extends ConfidenceResponse {
 
-    private ReasoningAction action;
+    private String summary;
 
-    private int visitCount;
+    private List<String> intermediateSteps;
 
-    private double valueSum;
-
-    private boolean selected;
-
-    private boolean simulated;
-
-    private boolean backpropagated;
-
-    public MCTSNode(final TreeNode<T> parent,
-                    final List<TreeNode<T>> child,
-                    final ReasoningAction action,
-                    final int visitCount,
-                    final double valueSum) {
-        super(parent == null ? 0 : parent.depth + 1, parent, child);
-        this.action = action;
-        this.visitCount = visitCount;
-        this.valueSum = valueSum;
-        this.selected = false;
-    }
-
+    private String synthesisNote;
 }

@@ -22,9 +22,8 @@
  * SOFTWARE.
  */
 
-package pub.rag.core.algorithm.mcts;
+package pub.rag.core.algorithm.tree;
 
-public enum ReasoningAction {
+public abstract class TreeNodeFactory {
 
-    SAY, QT, RA, DA, SA, NONE
 }

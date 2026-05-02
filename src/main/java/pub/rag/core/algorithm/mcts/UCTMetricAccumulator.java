@@ -26,35 +26,35 @@ package pub.rag.core.algorithm.mcts;
 
 import pub.rag.core.algorithm.tree.TreeNode;
 
-public class UCTScorer<T> implements Scorer<T> {
+public class UCTMetricAccumulator<T> implements MetricAccumulator<T> {
 
     private final double explorationConstant;
 
     /**
      * @param explorationConstant 探索常数，通常取 Math.sqrt(2) 或根据问题调节
      */
-    public UCTScorer(double explorationConstant) {
+    public UCTMetricAccumulator(double explorationConstant) {
         this.explorationConstant = explorationConstant;
     }
 
     @Override
-    public double score(TreeNode<T> node) {
-        if (!(node instanceof MCTSNode)) {
+    public double accumulate(TreeNode<T> node) {
+        if (!(node instanceof ReasonTreeNode)) {
             throw new IllegalArgumentException("UCTScorer requires MCTSNode");
         }
-        MCTSNode<T> mctsNode = (MCTSNode<T>) node;
+        ReasonTreeNode<T> reasonTreeNode = (ReasonTreeNode<T>) node;
 
-        int visitCount = mctsNode.getVisitCount();
+        int visitCount = reasonTreeNode.getVisitCount();
         if (visitCount == 0) {
             // 未访问节点给予极大值，强制优先探索
             return Double.POSITIVE_INFINITY;
         }
 
         // 利用项：平均价值
-        double exploit = mctsNode.getValueSum() / visitCount;
+        double exploit = reasonTreeNode.getValueSum() / visitCount;
 
         // 探索项
-        MCTSNode<T> parent = (MCTSNode<T>) mctsNode.getParent();
+        ReasonTreeNode<T> parent = (ReasonTreeNode<T>) reasonTreeNode.getParent();
         if (parent == null) {
             // 根节点没有父节点，仅返回利用项
             return exploit;

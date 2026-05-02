@@ -22,9 +22,17 @@
  * SOFTWARE.
  */
 
-package pub.rag.core.algorithm.mcts;
+package pub.rag.core.response;
 
-public enum ReasoningAction {
+import lombok.*;
 
-    SAY, QT, RA, DA, SA, NONE
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@EqualsAndHashCode(callSuper=true)
+public class DirectAnswerResponse extends ConfidenceResponse{
+
+    private String answer;
+
+    private String reasoning;
 }

@@ -36,13 +36,9 @@ import java.util.List;
  * Contains quality score, evaluation reason, retrieved answer and next turn query for retry
  */
 @Data
-@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class RetrievalQualityResponse {
-
-    /** Quality score (integer type - 0 to 100 recommended) */
-    private int quality;
+public class RetrievalQualityResponse extends ConfidenceResponse {
 
     /** Reason for quality evaluation result */
     private String reason;

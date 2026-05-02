@@ -13,16 +13,11 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class AdaptiveDecisionResponse {
+public class AdaptiveDecisionResponse extends ConfidenceResponse {
     /**
      * Final retrieval decision type
      */
     private String retrievalType;
-
-    /**
-     * Decision confidence 0-100
-     */
-    private Integer confidence;
 
     /**
      * Judgment reason based on NER, query complexity, entities
