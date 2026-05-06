@@ -26,14 +26,14 @@ package com.github.wordsless.galaxy.core.algorithm.mcts;
 
 import com.github.wordsless.galaxy.core.algorithm.tree.TreeNode;
 
-public class UCTAccumulator<T> implements MetricAccumulator<T> {
+public class UCTAccumulator implements MetricAccumulator {
 
     private static final double EXPLORATION_CONSTANT = Math.sqrt(2);
 
     @Override
-    public double accumulate(TreeNode<T> node) {
-        var child = (ReasonTreeNode<T>) node;
-        int childVisits = child.getVisitCount();
+    public double accumulate(TreeNode<?> node) {
+        var child = (ReasonTreeNode<?>) node;
+        var childVisits = child.getVisitCount();
         if (childVisits == 0) {
             return Double.POSITIVE_INFINITY; // 未访问节点优先探索
         }

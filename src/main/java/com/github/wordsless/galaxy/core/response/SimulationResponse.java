@@ -22,45 +22,16 @@
  * SOFTWARE.
  */
 
-package com.github.wordsless.galaxy.core.entity;
+package com.github.wordsless.galaxy.core.response;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.EqualsAndHashCode;
 
-/**
- * Model class representing a single conversation message
- * between the user and the AI assistant.
- */
+@EqualsAndHashCode(callSuper = true)
 @Data
-@Builder
-@NoArgsConstructor
 @AllArgsConstructor
-public final class Conversation {
+public class SimulationResponse extends ConfidenceResponse {
 
-    /**
-     * Unique identifier of the conversation message
-     */
-    @JsonProperty("id")
-    private long id;
-
-    /**
-     * Unix timestamp (milliseconds) when the message was created
-     */
-    @JsonProperty("timestamp")
-    private Long timestamp;
-
-    /**
-     * Role of the message sender (e.g. user, assistant, system)
-     */
-    @JsonProperty("role")
-    private String role;
-
-    /**
-     * Actual content/body of the conversation message
-     */
-    @JsonProperty("content")
-    private String content;
+    private double reward;
 }

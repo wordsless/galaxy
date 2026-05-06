@@ -39,7 +39,7 @@ public class Document {
 
     private long id;
 
-    private Document parentId;
+    private Document parent;
 
     private double score;
 

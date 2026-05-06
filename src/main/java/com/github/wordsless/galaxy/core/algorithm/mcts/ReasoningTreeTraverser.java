@@ -1,157 +1,150 @@
-/*
- * MIT License
- *
- * Copyright (c) ${YEAR} Qiang Li (李强)
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
- */
-
 package com.github.wordsless.galaxy.core.algorithm.mcts;
 
 import com.github.wordsless.galaxy.core.algorithm.tree.TreeNode;
+import com.github.wordsless.galaxy.core.response.ConfidenceResponse;
 
-import java.util.List;
+import java.util.*;
 
-public class ReasoningTreeTraverser<T> {
+public class ReasoningTreeTraverser {
 
-    private MetricAccumulator<T> metricAccumulator;
+    private final String rawQuery;
+    private final MetricAccumulator metricAccumulator;
+    private final ReasonTreeNodeFactory factory;
+    private final ReasoningTreeNodeSimulator simulator;
+    private final Map<ReasoningAction, List<ReasoningAction>> actionCandidates;
+    private final int maxDepth;
+    private final int sampling;
 
-    private ReasonTreeNodeFactory factory;
-
-    private String rawQuery;
-
-    private String payload;
-
-    private List<String> history;
-
-    public ReasoningTreeTraverser(final String rawQuery,
-                                  final MetricAccumulator<T> metricAccumulator,
-                                  final ReasonTreeNodeFactory factory) {
+    public ReasoningTreeTraverser(String rawQuery,
+                                  MetricAccumulator metricAccumulator,
+                                  ReasonTreeNodeFactory factory,
+                                  ReasoningTreeNodeSimulator simulator,
+                                  Map<ReasoningAction, List<ReasoningAction>> actionCandidates,
+                                  int maxDepth,
+                                  int sampling) {
         this.rawQuery = rawQuery;
         this.metricAccumulator = metricAccumulator;
         this.factory = factory;
+        this.simulator = simulator;
+        this.actionCandidates = actionCandidates;
+        this.maxDepth = maxDepth;
+        this.sampling = sampling;
     }
 
-    public void iterate(final ReasonTreeNode<T> root, final int maxIterNum) {
-        for (int iter = 0; iter < maxIterNum; iter++) {
-            // 1. Selection: 从根开始，使用 UCT 向下走到未完全扩展的节点
-            ReasonTreeNode<T> node = select(root);
+    public void iterate(ReasonTreeNode<?> root, int maxIterations) {
+        for (int iter = 0; iter < maxIterations; iter++) {
+            // 1. Selection: get path from root to node to expand
+            List<ReasonTreeNode<?>> path = select(root);
+            if (path == null || path.isEmpty()) continue;
+            ReasonTreeNode<?> selected = path.get(path.size() - 1);
 
-            // 2. Expansion: 在选中的节点上扩展一个新子节点
-            ReasonTreeNode<T> newNode = expand(node);
-            if (newNode == null) {
-                // 无法扩展（所有动作都已尝试），则直接对该节点模拟（视为叶子）
-                newNode = node;
+            // Build history from the path (excluding the selected node itself)
+            List<String> history = buildHistory(path, false);
+
+            // 2. Expansion: create child nodes with diverse sampling
+            List<ReasonTreeNode<?>> children = expand(selected, history);
+            if (children.isEmpty()) continue;
+
+            // 3. Simulation: for each child, simulate with full path history
+            Map<ReasonTreeNode<?>, Double> rewards = new HashMap<>();
+            for (ReasonTreeNode<?> child : children) {
+                List<ReasonTreeNode<?>> fullPath = new ArrayList<>(path);
+                fullPath.add(child);
+                List<String> simHistory = buildHistory(fullPath, true);
+                double reward = simulator.simulate(child, 1, 8, simHistory);
+                rewards.put(child, reward);
             }
 
-            // 3. Simulation: 从新节点开始快速推演得到奖励值
-            double reward = simulate(newNode);
-
-            // 4. Backpropagation: 沿父链向上更新 visitCount 和 valueSum
-            backpropagate(newNode, reward);
+            // 4. Backpropagation
+            for (Map.Entry<ReasonTreeNode<?>, Double> entry : rewards.entrySet()) {
+                backpropagate(entry.getKey(), entry.getValue());
+            }
         }
     }
 
-    /**
-     * 从根节点开始，递归选择 UCT 最大的子节点，直到遇到未完全扩展或终止的节点。
-     */
-    private ReasonTreeNode<?> select(ReasonTreeNode<?> root) {
-        ReasonTreeNode<?> node = root;
-        while (!node.isLeaf() && node.hasCompletelyExpanded()) {
-            node = bestChild(node);
+    private List<ReasonTreeNode<?>> select(ReasonTreeNode<?> root) {
+        List<ReasonTreeNode<?>> path = new ArrayList<>();
+        ReasonTreeNode<?> current = root;
+        path.add(current);
+        while (true) {
+            if (current.getDepth() >= maxDepth) return path;
+            if (!current.isFullyExpanded()) return path;
+            if (current.getChildren().isEmpty()) return path;
+            ReasonTreeNode<?> best = selectBestChild(current);
+            if (best == null) return path;
+            path.add(best);
+            current = best;
         }
-        return node;
     }
 
-    /**
-     * 在当前节点的子节点中选择 UCT 最大的一个。
-     */
-    private ReasonTreeNode<?> bestChild(ReasonTreeNode<?> node) {
+    private ReasonTreeNode<?> selectBestChild(ReasonTreeNode<?> parent) {
+        double bestUcb = Double.NEGATIVE_INFINITY;
         ReasonTreeNode<?> best = null;
-        double bestUCT = Double.NEGATIVE_INFINITY;
-        for (var child : node.getChildren()) {
-            var mctsChild = (ReasonTreeNode<?>) child;
-            double uct = metricAccumulator.accumulate(mctsChild);
-            if (uct > bestUCT) {
-                bestUCT = uct;
+        for (TreeNode<?> child : parent.getChildren()) {
+            ReasonTreeNode<?> mctsChild = (ReasonTreeNode<?>) child;
+            double ucb = metricAccumulator.accumulate(mctsChild);
+            if (best == null || ucb > bestUcb) {
+                bestUcb = ucb;
                 best = mctsChild;
             }
         }
         return best;
     }
 
-    /** 扩展节点：根据当前状态生成一个新子节点（例如选择某个未尝试的 ReasoningAction） */
-    private void expand(final ReasonTreeNode<T> root, final int sampling, final Simulator simulator) {
-        // if node has completely expanded, just return.
-        if(root.hasCompletelyExpanded())
-            return;
-        var expected = root.nextAction(true);
-        var c = 0;
-        while(c < sampling) {
-            var node = switch (expected) {
-                case SAY -> factory.createSAY(root, this.rawQuery, this.payload, this.history);
-                case QT  -> factory.createSAY(root, this.rawQuery, this.payload, this.history);
-                case RA  -> factory.createSAY(root, this.rawQuery, this.payload, this.history);
-                case DA  -> factory.createDA(root, this.rawQuery, this.payload, this.history);
-                case SA  -> factory.createSAY(root, this.rawQuery, this.payload, this.history);
-                case NONE -> null;
-            };
-            var children = root.getChildren();
-            for(var child : children) {
-                node.addSibling(child);
-                child.addSibling(node);
+    private List<String> buildHistory(List<ReasonTreeNode<?>> path, boolean includeLast) {
+        List<String> history = new ArrayList<>();
+        int end = includeLast ? path.size() : path.size() - 1;
+        for (int i = 0; i < end; i++) {
+            ReasonTreeNode<?> node = path.get(i);
+            String step = String.format("Step %d: %s", i, node.getAction());
+            if (node.getData() != null) {
+                ConfidenceResponse data = node.getData();
+                step += String.format("(confidence: %.2f, answer: %s)", data.getConfidence(), data.getAnswer());
             }
-            root.addChild(node);
-            var confidence = simulator.simulate(node);
-
-            c++;
+            history.add(step);
         }
-
+        return history;
     }
 
-    /** 模拟：对新节点进行快速推演，返回奖励值（例如调用 LLM 生成答案并打分） */
-    private double simulate(ReasonTreeNode<T> node) {
-        return simulator.simulate(node);
-    }
+    private List<ReasonTreeNode<?>> expand(ReasonTreeNode<?> node, List<String> history) {
+        List<ReasonTreeNode<?>> samples = new ArrayList<>();
+        if (node.getDepth() >= maxDepth) return samples;
+        ReasoningAction action = node.nextAction();
+        if (action == null) return samples;
 
-    /** 回溯：从给定节点向上更新所有祖先节点的 visitCount 和 valueSum */
-    private void backpropagate(ReasonTreeNode<T> node) {
-        ReasonTreeNode<T> current = node;
-        while (current != null) {
-            // 注意：当前节点的 visitCount 和 valueSum 已经在模拟阶段更新过
-            // 这里只需要更新父节点，但为了避免重复更新，我们可以选择从父节点开始累加子节点的统计值
-            // 更常见的做法是在回溯时直接累加奖励，而不是模拟时更新
-            // 为了简单，我们在模拟时已经更新了节点自身的统计，回溯时只更新父节点
-            ReasonTreeNode<T> parent = (ReasonTreeNode<T>) current.getParent();
-            if (parent != null) {
-                // 重新计算父节点的 valueSum 和 visitCount（累加所有子节点）
-                double sum = 0;
-                int count = 0;
-                for (TreeNode<T> child : parent.getChildren()) {
-                    ReasonTreeNode<T> mctsChild = (ReasonTreeNode<T>) child;
-                    sum += mctsChild.getValueSum();
-                    count += mctsChild.getVisitCount();
-                }
-                parent.setValueSum(sum);
-                parent.setVisitCount(count);
+        for (int i = 0; i < sampling; i++) {
+            ReasonTreeNode<?> child = createChildNode(node, action, history);
+            if (child != null) {
+                node.addChild(child);
+                samples.add(child);
             }
-            current = parent;
+        }
+        return samples;
+    }
+
+    private ReasonTreeNode<?> createChildNode(ReasonTreeNode<?> parent, ReasoningAction action, List<String> history) {
+        String subquery = rawQuery; // simplify; could be derived from parent data
+        try {
+            return switch (action) {
+                case SAY -> factory.createSAY(parent, rawQuery, subquery, history);
+                case QT -> factory.createQT(parent, rawQuery, subquery, history);
+                case RA -> factory.createRA(parent, rawQuery, subquery, history);
+                case DA -> factory.createDA(parent, rawQuery, subquery, history);
+                case SA -> factory.createSA(parent, rawQuery, subquery, history);
+                default -> null;
+            };
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    private void backpropagate(ReasonTreeNode<?> node, double reward) {
+        ReasonTreeNode<?> current = node;
+        while (current != null) {
+            current.setVisitCount(current.getVisitCount() + 1);
+            current.setValueSum(current.getValueSum() + reward);
+            current = (ReasonTreeNode<?>) current.getParent();
         }
     }
 }

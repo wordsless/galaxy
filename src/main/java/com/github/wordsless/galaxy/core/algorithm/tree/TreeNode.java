@@ -24,23 +24,25 @@
 
 package com.github.wordsless.galaxy.core.algorithm.tree;
 
-import lombok.Data;
-import lombok.EqualsAndHashCode;
+import lombok.*;
 
 import java.util.ArrayList;
 import java.util.List;
 
 @Data
+@With
+@AllArgsConstructor
+@NoArgsConstructor
 @EqualsAndHashCode(callSuper = false)
 public class TreeNode<T> {
 
-    protected final int depth;
+    protected int depth;
 
-    protected final TreeNode<?> parent;
+    protected TreeNode<?> parent;
 
-    protected final List<TreeNode<?>> children;
+    protected List<TreeNode<?>> children;
 
-    protected final List<TreeNode<?>> siblings;
+    protected List<TreeNode<?>> siblings;
 
     protected T data;
 
@@ -56,13 +58,20 @@ public class TreeNode<T> {
         return children.isEmpty();
     }
 
-    public int addSibling(final TreeNode<?> sibling) {
-        siblings.add(sibling);
+    private int addSibling(final TreeNode<?> node) {
+        siblings.add(node);
         return siblings.size();
     }
 
-    public int addChild(final TreeNode<?> child) {
-        children.add(child);
+    public int addChild(final TreeNode<?> node) {
+        children.add(node);
+        for(var s : siblings) {
+            if(s.equals(node))
+                continue;
+            node.addSibling(s);
+            s.addSibling(node);
+        }
+        siblings.add(node);
         return children.size();
     }
 
