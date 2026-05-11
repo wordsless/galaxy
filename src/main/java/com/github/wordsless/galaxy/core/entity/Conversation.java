@@ -22,25 +22,41 @@
  * SOFTWARE.
  */
 
-package com.github.wordsless.galaxy.core.algorithm.mcts;
+package com.github.wordsless.galaxy.core.entity;
 
-import com.github.wordsless.galaxy.core.algorithm.tree.TreeNode;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 
-public class UCTAccumulator implements MetricAccumulator {
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 
-    private static final double EXPLORATION_CONSTANT = Math.sqrt(2);
+@Data
+@EqualsAndHashCode(callSuper = false)
+public class Conversation {
+
+    private long timestamp;
+
+    private String role;
+
+    private String content;
+
+    public Conversation(String role, String content) {
+        timestamp = System.currentTimeMillis();
+        this.role = role;
+        this.content = content;
+    }
+
+    public static String longToDateString(long timestamp, String pattern, ZoneId zoneId) {
+        Instant instant = Instant.ofEpochMilli(timestamp);
+        LocalDateTime dateTime = LocalDateTime.ofInstant(instant, zoneId);
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(pattern);
+        return dateTime.format(formatter);
+    }
 
     @Override
-    public double accumulate(TreeNode<?> node) {
-        var child = (ReasonTreeNode<?>) node;
-        var childVisits = child.getVisitCount();
-        if (childVisits == 0) {
-            return Double.POSITIVE_INFINITY; // 未访问节点优先探索
-        }
-        double exploitation = child.getValueSum() / childVisits; // Q(s,a)/N(s)
-        ReasonTreeNode<?> parent = (ReasonTreeNode<?>) child.getParent();
-        int parentVisits = parent.getVisitCount();
-        double exploration = EXPLORATION_CONSTANT * Math.sqrt(Math.log(parentVisits) / childVisits);
-        return exploitation + exploration;
+    public String toString() {
+        return String.format("%s %s: %s", longToDateString(timestamp, "yyyy-MM-dd HH:mm:ss", ZoneId.systemDefault()), role, content);
     }
 }

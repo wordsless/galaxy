@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "reason": { "type": "string" },
+    "confidence": { "type": "number" },
+    "answer": { "type": "string" },
+    "nextTurnQueries": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  },
+  "required": ["reason", "confidence", "answer"],
+  "additionalProperties": false
+}

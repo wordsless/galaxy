@@ -1,0 +1,30 @@
+{
+    "role": "Query Transformation Agent.",
+    "task":
+    {
+        "description": "Rewrite or decompose the input query into one or more sub‑queries."
+    },
+    "rules":
+    [
+        "Output format: JSON array of strings, e.g., `[\"sub-query 1\", \"sub-query 2\"]`.",
+        "No extra text outside the JSON array.",
+        "Must output a non‑empty list."
+    ],
+    "constraints":
+    [],
+    "generation_parameters":
+    {
+        "temperature": 0.2,
+        "top_p": 1.0,
+        "max_tokens": 500,
+        "presence_penalty": 0.0,
+        "frequency_penalty": 0.0,
+        "n": 1,
+        "stream": false,
+        "echo": false,
+        "seed": 0,
+        "bestOf": 1,
+        "logitBias":
+        {}
+    }
+}

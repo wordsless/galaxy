@@ -28,24 +28,18 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.wordsless.galaxy.core.entity.ChatModelRequest;
-import com.github.wordsless.galaxy.core.response.ConfidenceResponse;
-import com.networknt.schema.Error;
-import com.networknt.schema.InputFormat;
-import com.networknt.schema.Schema;
+import com.github.wordsless.galaxy.core.response.AbstractBasicResponse;
 import dev.langchain4j.model.chat.ChatModel;
-import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import com.github.wordsless.galaxy.core.entity.PromptContext;
 import com.github.wordsless.galaxy.core.exception.ChatModelInvokerException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
 import java.util.Objects;
 
 @Component
-public class ChatModelDelegator<T extends ConfidenceResponse> {
+public class ChatModelDelegator<T> {
 
     private static final Logger logger = LoggerFactory.getLogger(ChatModelDelegator.class);
 
@@ -64,10 +58,6 @@ public class ChatModelDelegator<T extends ConfidenceResponse> {
         this.mapper = mapper;
     }
 
-    public String toString(ChatModelRequest<T> request) {
-        return null;
-    }
-
     /**
      * Execute LLM call with JSON Schema validation and auto-retry support.
      *
@@ -75,8 +65,8 @@ public class ChatModelDelegator<T extends ConfidenceResponse> {
      * @return deserialized target object
      */
     public T delegate(final int maxRetryCount,
-                          final ChatModelRequest<T> request,
-                          final TypeReference<T> typeReference) {
+                      final ChatModelRequest request,
+                      final TypeReference<T> typeReference) {
         // Input parameter validation
         if (maxRetryCount < 1) {
             throw new ChatModelInvokerException("Max retry count must be greater than 0");

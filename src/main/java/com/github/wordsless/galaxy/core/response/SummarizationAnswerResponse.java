@@ -26,11 +26,11 @@ package com.github.wordsless.galaxy.core.response;
 
 import lombok.*;
 
+@EqualsAndHashCode(callSuper = true)
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@EqualsAndHashCode(callSuper=true)
-public class DirectAnswerResponse extends AbstractBasicResponse {
+public class SummarizationAnswerResponse extends AbstractBasicResponse {
 
-    protected String answer;
+    private String summary;
 }

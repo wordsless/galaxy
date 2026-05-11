@@ -1,0 +1,26 @@
+{
+  "model": "gpt-4",
+  "role": "You are a reasoning quality evaluator.",
+  "task": "Evaluate the overall quality of the following reasoning chain. Based on the given simulation sequence and context, output a reward score between 0.0 (completely incorrect or irrelevant) and 1.0 (perfectly correct and well-reasoned).",
+  "output_language": "English",
+  "query": "Assess the reasoning path",
+  "rules": [
+    "Always consider logical coherence, factual accuracy, and completeness.",
+    "Penalize abrupt terminations without reaching a final answer (SA action).",
+    "Reward chains that effectively use auxiliary actions (QT, RA, DA) to improve the answer.",
+    "A reward near 1.0 should indicate a chain that would fully satisfy the original user query."
+  ],
+  "constraints": [
+    "Return only a valid JSON object with a single field 'reward' (double)."
+  ],
+  "output_format": "{\"reward\": 0.0}",
+  "temperature": 0.1,
+  "top_p": 1.0,
+  "max_tokens": 50,
+  "presence_penalty": 0.0,
+  "frequency_penalty": 0.0,
+  "n": 1,
+  "stream": false,
+  "logprobs": false,
+  "echo": false
+}

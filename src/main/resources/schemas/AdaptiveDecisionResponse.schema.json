@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "reason": { "type": "string" },
+    "confidence": { "type": "number" },
+    "retrievalType": { "type": "string" }
+  },
+  "required": ["reason", "confidence", "retrievalType"],
+  "additionalProperties": false
+}

@@ -32,7 +32,7 @@ public abstract class TreeTraverser<T> {
         }
         visitor.visit(root);
         for(var child : root.getChildren()) {
-            preorder(child, visitor);
+            preorder((TreeNode<T>) child, visitor);
         }
     }
 
@@ -41,7 +41,7 @@ public abstract class TreeTraverser<T> {
             return;
         }
         for(var child : root.getChildren()) {
-            postorder(child, visitor);
+            postorder((TreeNode<T>) child, visitor);
         }
         visitor.visit(root);
     }

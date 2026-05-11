@@ -22,9 +22,21 @@
  * SOFTWARE.
  */
 
-package com.github.wordsless.galaxy.core.algorithm.mcts;
+package com.github.wordsless.galaxy.core.response;
 
-public interface Expander<T> {
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-    ReasonTreeNode<T> expand(ReasonTreeNode<T> parent, ReasoningAction action);
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public abstract class AbstractBasicResponse {
+
+    protected String reason;
+
+    protected double confidence;
+
 }

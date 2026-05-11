@@ -26,8 +26,7 @@ package com.github.wordsless.galaxy.core.entity;
 
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
-import com.github.wordsless.galaxy.core.algorithm.mcts.ReasoningAction;
-import com.github.wordsless.galaxy.core.response.ConfidenceResponse;
+import com.github.wordsless.galaxy.core.sample.ReasoningAction;
 import lombok.*;
 
 import java.util.List;
@@ -37,16 +36,14 @@ import java.util.Map;
  * Represents a complete request to a Large Language Model (LLM) combining
  * prompt engineering components (role, task, rules) with generation parameters.
  *
- * @param <T> The type of the expected output format, which must implement {@link ConfidenceResponse}.
  * @author Qiang Li
  * @since 1.0
  */
 @Builder(toBuilder = true) // Allow copying with modifications
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class) // Map fields like `topP` -> `top_p`
 @Data
-@Setter(AccessLevel.NONE)
-@Getter(AccessLevel.NONE)
-public class ChatModelRequest<T extends ConfidenceResponse> {
+@With
+public class ChatModelRequest {
 
     // ==================== Core Prompt Components ====================
 
@@ -71,7 +68,7 @@ public class ChatModelRequest<T extends ConfidenceResponse> {
      */
     List<Map<ReasoningAction, Double>> simulationSequence;
 
-    /** The primary user query or input text */
+    /** The raw query or input text */
     String query;
 
     /** List of behavioral rules the LLM must follow */
@@ -81,10 +78,10 @@ public class ChatModelRequest<T extends ConfidenceResponse> {
     List<String> constraints;
 
     /** Relevant contextual information or conversation history */
-    List<String> context;
+    List<Conversation> context;
 
-    /** Structured output format specification; type T must implement {@link ConfidenceResponse} */
-    T outputFormat;
+    /** Structured output format specification;*/
+    String outputFormat;
 
     // ==================== Generation Parameters ====================
 
@@ -104,9 +101,6 @@ public class ChatModelRequest<T extends ConfidenceResponse> {
 
     /** Maximum number of tokens to generate. null = model's maximum allowed. */
     Integer maxTokens;
-
-    /** List of strings that stop generation. E.g., ["\n", "User:"] */
-    List<String> stop;
 
     /**
      * Presence penalty (-2.0 - 2.0). Positive values discourage repeating tokens already present.
@@ -141,14 +135,12 @@ public class ChatModelRequest<T extends ConfidenceResponse> {
     /** Deterministic seed for reproducible results (not supported by all providers). */
     Integer seed;
 
-    /** Optional user identifier for monitoring/abuse detection. */
-    String user;
-
     /**
      * Number of completions generated server-side to choose the best one.
      * Requires provider support. Default: 1 (same as n)
      */
-    Integer bestOf;
+    @Builder.Default
+    Integer bestOf = 1;
 
     /**
      * Token bias adjustments: map token IDs to bias values (-100 to 100).

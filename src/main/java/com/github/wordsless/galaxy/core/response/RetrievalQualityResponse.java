@@ -37,10 +37,7 @@ import java.util.List;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class RetrievalQualityResponse extends ConfidenceResponse {
-
-    /** Reason for quality evaluation result */
-    private String reason;
+public class RetrievalQualityResponse extends AbstractBasicResponse {
 
     /** Final answer generated from retrieval results */
     private String answer;

@@ -22,21 +22,10 @@
  * SOFTWARE.
  */
 
-package com.github.wordsless.galaxy.core.response;
-
-import lombok.*;
+package com.github.wordsless.galaxy.core.sample;
 
 import java.util.List;
 
-@EqualsAndHashCode(callSuper = true)
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-public class SummaryAnswerResponse extends ConfidenceResponse {
-
-    private String summary;
-
-    private List<String> intermediateSteps;
-
-    private String synthesisNote;
+public interface ConsistencyVoter {
+    String vote(List<String> answers);
 }

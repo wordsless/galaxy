@@ -22,18 +22,9 @@
  * SOFTWARE.
  */
 
-package com.github.wordsless.galaxy.core.response;
+package com.github.wordsless.galaxy.core.sample;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+public enum ReasoningAction {
 
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public abstract class ConfidenceResponse {
-
-    protected double confidence;
+    SAY, QT, RA, DA, SA, NONE
 }

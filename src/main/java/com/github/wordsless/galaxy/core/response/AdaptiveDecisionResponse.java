@@ -13,19 +13,10 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class AdaptiveDecisionResponse extends ConfidenceResponse {
+public class AdaptiveDecisionResponse extends AbstractBasicResponse {
     /**
      * Final retrieval decision type
      */
     private String retrievalType;
 
-    /**
-     * Judgment reason based on NER, query complexity, entities
-     */
-    private String reason;
-
-    /**
-     * Next query for multi-hop retrieval
-     */
-    private String nextTurnQuery;
 }

@@ -1,0 +1,30 @@
+flowchart TD
+    classDef black fill:#FFFFFF,stroke:#000000,stroke-width:1px,color:#000000;
+
+    SAY[SAY Action 根节点<br>（总结回答）]:::black
+
+SAY --> A1[直接回答路径]:::black
+SAY --> A2[检索增强路径]:::black
+SAY --> A3[查询转换路径]:::black
+
+A1 --> V[验证事实一致性]:::black
+A2 --> V
+A3 --> V
+
+V --> E1[生成候选答案 1]:::black
+V --> E2[生成候选答案 2]:::black
+
+E1 --> Eval[综合评估与自一致性验证]:::black
+E2 --> Eval
+
+Eval -->|回溯更新 Q 值| SAY
+
+subgraph MCTS_Loop [MCTS 核心步骤]
+direction LR
+S[选择]:::black --> EXP[扩展]:::black --> SIM[模拟]:::black --> BACK[回溯]:::black
+end
+
+EXP -.-> SAY
+BACK -.-> SAY
+
+Note1[注意：不同路径汇聚到同一节点，形成 DAG 结构。节点 验证事实一致性 和 综合评估 均有多个入边。]:::black

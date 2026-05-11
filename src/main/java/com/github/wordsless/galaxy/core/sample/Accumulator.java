@@ -22,9 +22,9 @@
  * SOFTWARE.
  */
 
-package com.github.wordsless.galaxy.core.algorithm.mcts;
+package com.github.wordsless.galaxy.core.sample;
 
-public enum ReasoningAction {
+public interface Accumulator {
 
-    SAY, QT, RA, DA, SA, NONE
+    double accumulate(ReasoningTreeNode<?, ?> node);
 }

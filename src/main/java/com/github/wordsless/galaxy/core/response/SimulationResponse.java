@@ -31,7 +31,7 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = true)
 @Data
 @AllArgsConstructor
-public class SimulationResponse extends ConfidenceResponse {
+public class SimulationResponse extends AbstractBasicResponse {
 
     private double reward;
 }

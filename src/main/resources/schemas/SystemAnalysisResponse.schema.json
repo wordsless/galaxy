@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "reason": { "type": "string" },
+    "confidence": { "type": "number" },
+    "steps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "index": { "type": "integer" },
+          "description": { "type": "string" },
+          "suggestedActionHint": { "type": "string", "default": "" }
+        },
+        "required": ["index", "description"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["reason", "confidence", "steps"],
+  "additionalProperties": false
+}

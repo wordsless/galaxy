@@ -22,11 +22,51 @@
  * SOFTWARE.
  */
 
-package com.github.wordsless.galaxy.core.algorithm.mcts;
+package com.github.wordsless.galaxy.core.sample;
 
-import com.github.wordsless.galaxy.core.algorithm.tree.TreeNode;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Data;
+import lombok.NonNull;
 
-public interface MetricAccumulator {
+import java.util.ArrayList;
+import java.util.List;
 
-    double accumulate(TreeNode<?> node);
+@Data
+public class PlanStep {
+
+    private Integer SN;
+
+    private ReasoningAction action;
+
+    private String content;
+
+    @JsonProperty("depend_on")
+    private Integer dependOn;
+
+    private List<PlanStep> children;
+
+    private boolean used;
+
+    public PlanStep(@NonNull Integer SN,
+                    @NonNull ReasoningAction action,
+                    @NonNull String content) {
+        this.SN = SN;
+        this.action  = action;
+        this.content = content;
+        this.children = new ArrayList<>();
+    }
+
+    public void addChild(PlanStep child) {
+        this.children.add(child);
+    }
+
+    public PlanStep next() {
+        PlanStep next = null;
+        for(var child : children) {
+            if(!child.used)
+                next = child;
+        }
+        return next;
+    }
+
 }

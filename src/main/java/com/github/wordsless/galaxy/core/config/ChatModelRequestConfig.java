@@ -26,102 +26,193 @@ package com.github.wordsless.galaxy.core.config;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.github.victools.jsonschema.generator.*;
 import com.github.wordsless.galaxy.core.ChatModelDelegator;
-import com.github.wordsless.galaxy.core.algorithm.mcts.*;
+import com.github.wordsless.galaxy.core.ChatModelRequestSerializer;
 import com.github.wordsless.galaxy.core.entity.ChatModelRequest;
-import com.github.wordsless.galaxy.core.response.AdaptiveDecisionResponse;
-import com.github.wordsless.galaxy.core.response.SimulationResponse;
-import org.snakeyaml.engine.v2.common.SpecVersion;
+import com.github.wordsless.galaxy.core.sample.*;
+import com.google.common.io.Resources;
+import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.openai.OpenAiChatModel;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import tools.jackson.databind.JsonNode;
+import org.springframework.context.annotation.PropertySource;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.*;
 
 @Configuration
+@PropertySource("classpath:deepseek.properties")
 public class ChatModelRequestConfig {
 
-    /**
-     * Reads a file from the classpath and returns its content as a string.
-     * @param fileName the file name (e.g., "config/test.properties")
-     * @return file content as a string
-     * @throws IllegalArgumentException if the file is not found in classpath
-     * @throws IOException if an I/O error occurs
-     */
-    public String readFromClasspath(String fileName) throws IOException {
-        // Obtain the context class loader for the current thread (works in most environments)
-        ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-        // Alternative: ClassLoader.getSystemClassLoader()
-        // If using Class.getResourceAsStream("/" + fileName), note that a leading "/" means absolute path
-
-        try (InputStream is = classLoader.getResourceAsStream(fileName)) {
-            if (is == null) {
-                throw new IllegalArgumentException("File not found in classpath: " + fileName);
-            }
-            // Read all lines using UTF-8 encoding
-            StringBuilder content = new StringBuilder();
-            try (BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(is, StandardCharsets.UTF_8))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    content.append(line).append("\n");
-                }
-            }
-            return content.toString();
-        }
-    }
+    @Value("${deepseek.api.key}")
+    private String apiKey;
 
     @Bean
     public ObjectMapper getObjectMapper() {
         return new ObjectMapper();
     }
 
-    @Bean("")
-    public ChatModelRequest<SimulationResponse> getSimulationRequest(final ObjectMapper objectMapper) {
+    // Request prompt to chat model during MCTS simulation
+    @Bean("simulationRequest")
+    public ChatModelRequest simulationRequest(final ObjectMapper objectMapper) {
         try {
-            var template = readFromClasspath("simulation.json");
-            var request = objectMapper.readValue(template, new TypeReference<ChatModelRequest<SimulationResponse>>() {});
-            return request;
+            String template = Resources.toString(Resources.getResource("prompts/mcts/simulation.json"), StandardCharsets.UTF_8);
+            return objectMapper.readValue(template, new TypeReference<ChatModelRequest>() {});
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
-    @Bean("actionCandidates")
-    public Map<ReasoningAction, List<ReasoningAction>> getActionCandidateByParent() {
-        var candidates = new HashMap<ReasoningAction, List<ReasoningAction>>();
-        candidates.put(ReasoningAction.SAY, Arrays.asList(ReasoningAction.QT, ReasoningAction.RA, ReasoningAction.DA));
-        candidates.put(ReasoningAction.DA, Arrays.asList(ReasoningAction.QT, ReasoningAction.RA, ReasoningAction.DA, ReasoningAction.SA, ReasoningAction.SAY));
-        candidates.put(ReasoningAction.RA, Arrays.asList(ReasoningAction.QT, ReasoningAction.RA, ReasoningAction.DA, ReasoningAction.SA, ReasoningAction.SAY));
-        candidates.put(ReasoningAction.QT, Arrays.asList(ReasoningAction.RA, ReasoningAction.DA));
-        candidates.put(ReasoningAction.SA, Collections.emptyList());
-        return candidates;
+    // Request prompt to chat model during MCTS expansion of a SAY (SystemAnalysis) node.
+    @Bean("expansionRequest4SAY")
+    public ChatModelRequest expansionRequest4SAY(final ObjectMapper objectMapper) {
+        try {
+            String template = Resources.toString(Resources.getResource("prompts/mcts/expansion/SAY.json"), StandardCharsets.UTF_8);
+            return objectMapper.readValue(template, new TypeReference<ChatModelRequest>() {});
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    // Request prompt to chat model during MCTS expansion of a SA (Summary Answer) node.
+    @Bean("expansionRequest4SA")
+    public ChatModelRequest expansionRequest4SA(final ObjectMapper objectMapper) {
+        try {
+            String template = Resources.toString(Resources.getResource("prompts/mcts/expansion/SA.json"), StandardCharsets.UTF_8);
+            return objectMapper.readValue(template, new TypeReference<ChatModelRequest>() {});
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    // Request prompt to chat model during MCTS expansion of a DA (Directly Answer) node.
+    @Bean("expansionRequest4DA")
+    public ChatModelRequest expansionRequest4DA(final ObjectMapper objectMapper) {
+        try {
+            String template = Resources.toString(Resources.getResource("prompts/mcts/expansion/DA.json"), StandardCharsets.UTF_8);
+            return objectMapper.readValue(template, new TypeReference<ChatModelRequest>() {});
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    // Request prompt to chat model during MCTS expansion of a DA (Directly Answer) node.
+    @Bean("expansionRequest4RA")
+    public ChatModelRequest expansionRequest4RA(final ObjectMapper objectMapper) {
+        try {
+            String template = Resources.toString(Resources.getResource("prompts/mcts/expansion/RA.json"), StandardCharsets.UTF_8);
+            return objectMapper.readValue(template, new TypeReference<ChatModelRequest>() {});
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    // Request prompt to chat model during MCTS expansion of a DA (Directly Answer) node.
+    @Bean("expansionRequest4QT")
+    public ChatModelRequest expansionRequest4QT(final ObjectMapper objectMapper) {
+        try {
+            String template = Resources.toString(Resources.getResource("prompts/mcts/expansion/QT.json"), StandardCharsets.UTF_8);
+            return objectMapper.readValue(template, new TypeReference<ChatModelRequest>() {});
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Bean("chatModelRequestSerializer")
+    public ChatModelRequestSerializer chatModelRequestSerializer() {
+        return new ChatModelRequestSerializer();
+    }
+
+    @Bean
+    public ChatModel cloudChatModel() {
+        return OpenAiChatModel.builder()
+                .apiKey(apiKey)
+                .modelName("gpt-4")
+                .temperature(0.0)
+                .timeout(Duration.ofSeconds(60))
+                .maxRetries(3)
+                .build();
+    }
+
+    @Bean("simulationChatModelDelegator")
+    public ChatModelDelegator<List<Double>>
+    simulationChatModelDelegator(ChatModel chatModel, ObjectMapper objectMapper) {
+        return new ChatModelDelegator<List<Double>>(chatModel,  objectMapper);
+    }
+
+    @Bean("directAnswerResponseChatModelDelegator")
+    public ChatModelDelegator<List<String>>
+    directAnswerResponseChatModelDelegator(ChatModel chatModel, ObjectMapper objectMapper) {
+        return new ChatModelDelegator<List<String>>(chatModel,  objectMapper);
+    }
+
+    @Bean("retrievalAnswerResponseChatModelDelegator")
+    public ChatModelDelegator<List<String>>
+    retrievalAnswerResponseChatModelDelegator(ChatModel chatModel, ObjectMapper objectMapper) {
+        return new ChatModelDelegator<List<String>>(chatModel,  objectMapper);
+    }
+
+    @Bean("systemAnalysisChatModelDelegator")
+    public ChatModelDelegator<SAY>
+    systemAnalysisChatModelDelegator(ChatModel chatModel, ObjectMapper objectMapper) {
+        return new ChatModelDelegator<SAY>(chatModel,  objectMapper);
+    }
+
+    @Bean("queryTransformChatModelDelegator")
+    public ChatModelDelegator<List<String>>
+    queryTransformChatModelDelegator(ChatModel chatModel, ObjectMapper objectMapper) {
+        return new ChatModelDelegator<List<String>>(chatModel,  objectMapper);
+    }
+
+    @Bean("summaryAnswerChatModelDelegator")
+    public ChatModelDelegator<List<String>>
+    summaryAnswerChatModelDelegator(ChatModel chatModel, ObjectMapper objectMapper) {
+        return new ChatModelDelegator<List<String>>(chatModel,  objectMapper);
     }
 
     @Bean
     public ReasoningTreeNodeSimulator reasoningTreeNodeSimulator(
-            ChatModelDelegator<SimulationResponse> simulationDelegator,
-            ChatModelRequest<SimulationResponse> simulationRequest,
-            @Qualifier("actionCandidates") Map<ReasoningAction, List<ReasoningAction>> candidates) {
-        return new ReasoningTreeNodeSimulator(simulationDelegator, simulationRequest, candidates);
+            @Qualifier("simulationChatModelDelegator")
+            ChatModelDelegator<List<Double>> simulationDelegator,
+            ChatModelRequest simulationRequest) {
+        return new ReasoningTreeNodeSimulator(simulationDelegator, simulationRequest);
     }
 
     @Bean
-    public ReasoningTreeTraverser reasoningTreeTraverser(
-            @Value("${mcts.maxDepth:10}") int maxDepth,
-            @Value("${mcts.sampling:4}") int sampling,
-            MetricAccumulator uctAccumulator,
-            ReasonTreeNodeFactory factory,
-            ReasoningTreeNodeSimulator simulator,
-            @Qualifier("actionCandidates") Map<ReasoningAction, List<ReasoningAction>> candidates) {
-        return new ReasoningTreeTraverser(rawQuery, uctAccumulator, factory, simulator, candidates, maxDepth, sampling);
+    public ReasoningTreeNodeFactory reasoningTreeNodeFactory(@Qualifier("directAnswerResponseChatModelDelegator")
+                                                             final ChatModelDelegator<List<String>> directAnswerDelegator,
+                                                             @Qualifier("retrievalAnswerResponseChatModelDelegator")
+                                                             final ChatModelDelegator<List<String>> retrievalAnswerDelegator,
+                                                             @Qualifier("queryTransformChatModelDelegator")
+                                                             final ChatModelDelegator<List<String>> queryTransformChatModelDelegator,
+                                                             @Qualifier("systemAnalysisChatModelDelegator")
+                                                             final ChatModelDelegator<SAY> systemAnalysisChatModelDelegator,
+                                                             @Qualifier("summaryAnswerChatModelDelegator")
+                                                             final ChatModelDelegator<List<String>> summaryAnswerChatModelDelegator,
+                                                             @Qualifier("expansionRequest4DA")
+                                                             final ChatModelRequest directRequest,
+                                                             @Qualifier("expansionRequest4RA")
+                                                             final ChatModelRequest retrievalRequest,
+                                                             @Qualifier("expansionRequest4QT")
+                                                             final ChatModelRequest queryTransformRequest,
+                                                             @Qualifier("expansionRequest4SAY")
+                                                             final ChatModelRequest systemAnalysisRequest,
+                                                             @Qualifier("expansionRequest4SA")
+                                                             final ChatModelRequest summaryRequest,
+                                                             final ObjectMapper objectMapper) {
+        return new ReasoningTreeNodeFactory(systemAnalysisChatModelDelegator,
+                                            queryTransformChatModelDelegator,
+                                            retrievalAnswerDelegator,
+                                            directAnswerDelegator,
+                                            summaryAnswerChatModelDelegator,
+                                            directRequest,retrievalRequest,
+                                            queryTransformRequest,
+                                            systemAnalysisRequest,
+                                            summaryRequest,
+                                            objectMapper);
     }
 }
