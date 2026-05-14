@@ -22,10 +22,11 @@
  * SOFTWARE.
  */
 
-package com.github.wordsless.galaxy.core.preprocessor;
+package com.github.wordsless.galaxy.core;
 
 import java.util.Map;
 
-public interface NamedEntityRecognizer extends IQueryFilter {
+public interface Retrier {
 
+    boolean retrie(Map<String, ?> context);
 }

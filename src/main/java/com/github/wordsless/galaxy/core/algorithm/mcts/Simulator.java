@@ -22,10 +22,8 @@
  * SOFTWARE.
  */
 
-package com.github.wordsless.galaxy.core.preprocessor;
+package com.github.wordsless.galaxy.core.algorithm.mcts;
 
-import java.util.Map;
-
-public interface NamedEntityRecognizer extends IQueryFilter {
-
+public interface Simulator {
+    double simulate(ReasoningTreeNode<?, ?> node, int minDepth, int maxDepth);
 }

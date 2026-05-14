@@ -1,6 +1,6 @@
 package com.github.wordsless.galaxy.core.response;
 
-import com.github.wordsless.galaxy.core.sample.PlanStep;
+import com.github.wordsless.galaxy.core.algorithm.mcts.PlanStep;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

@@ -22,25 +22,40 @@
  * SOFTWARE.
  */
 
-package com.github.wordsless.galaxy.core;
+package com.github.wordsless.galaxy.core.utils;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.networknt.schema.Schema;
-import dev.langchain4j.model.chat.ChatModel;
+import org.springframework.stereotype.Component;
 
+import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
-public class CloudModelAdapter<T> extends ChatModelDelegator implements ChatModelAdapter<T> {
+@Component
+public class BERTopicService {
 
-    private final ObjectMapper deserializer;
 
-    public CloudModelAdapter(ChatModel chatLanguageModel, String promptTemplate, Schema schema, ObjectMapper mapper, ObjectMapper deserializer) {
-        super(chatLanguageModel, promptTemplate, schema, mapper);
-        this.deserializer = deserializer;
-    }
+    // BERTopic 微服务地址（改成你自己的）
+    private static final String BERTOPIC_API = "http://127.0.0.1:8000/topic/predict";
 
-    @Override
-    public T call(List<Document> docs) {
-        return null;
+    // Jackson（Spring 自带，spring-context 已包含）
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
+    /**
+     * 调用 BERTopic 微服务进行主题预测
+     * @param query 待分析文本列表
+     * @return 主题结果
+     */
+    public List<String> predictTopics(String query) throws IOException {
+        // 1. 构造请求 JSON
+        Map<String, String> request = Map.of("texts", query);
+        String jsonRequest = objectMapper.writeValueAsString(request);
+
+        // 2. 调用 BERTopic 微服务（核心调用）
+        String jsonResponse = HttpUtil.post(BERTOPIC_API, jsonRequest);
+
+        // 3. 解析返回结果
+        return objectMapper.readValue(jsonResponse, new TypeReference<List<String>>() {});
     }
 }

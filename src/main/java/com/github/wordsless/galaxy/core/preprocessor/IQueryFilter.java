@@ -26,6 +26,7 @@ package com.github.wordsless.galaxy.core.preprocessor;
 
 import java.util.Map;
 
-public interface NamedEntityRecognizer extends IQueryFilter {
+public interface IQueryFilter {
 
+    void process(Map<String, ?> context);
 }

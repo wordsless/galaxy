@@ -24,8 +24,33 @@
 
 package com.github.wordsless.galaxy.core.preprocessor;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.github.wordsless.galaxy.core.ChatModelDelegator;
+import com.github.wordsless.galaxy.core.ChatModelRequest;
+
+import java.util.List;
 import java.util.Map;
 
-public interface NamedEntityRecognizer extends IQueryFilter {
+public class QueryRewriter implements IQueryFilter {
 
+    private final ChatModelDelegator<List<String>> chatModelDelegator;
+
+    private final ChatModelRequest queryRewriteRequest;
+
+    public QueryRewriter(final ChatModelDelegator<List<String>> chatModelDelegator,
+                         final NamedEntityRecognizer namedEntityRecognizer,
+                         final ChatModelRequest queryRewriteRequest) {
+        this.chatModelDelegator = chatModelDelegator;
+        this.queryRewriteRequest = queryRewriteRequest;
+    }
+
+    @SuppressWarnings("uncheck")
+    @Override
+    public void process(final Map<String, ?> args) {
+        String rawQuery = (String) args.get("RawQuery");
+        var ners = (Map<String, String>) args.get("NERs");
+        var request = this.queryRewriteRequest.withRawQuery(rawQuery).withNERs(ners);
+        String results = chatModelDelegator.delegate(request, new TypeReference<List<String>>() {}).getFirst();
+        ((Map)args).put("RewritedQuery", results);
+    }
 }

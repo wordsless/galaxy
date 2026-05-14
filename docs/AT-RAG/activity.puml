@@ -1,0 +1,62 @@
+@startuml
+' AT-RAG 正确版详细活动图 (PlantUML)
+' 严格对齐 arXiv:2410.12886 Algorithm 1，修正最终答案赋值逻辑
+start
+
+:输入参数：
+查询 q
+知识库 D
+主题模型 f_θ(BERTopic)
+最大迭代次数 N;
+
+:初始化：
+最终答案 â ← 空
+当前查询 q₁ ← q
+上下文历史 c₁:i ← 空列表
+迭代次数 i ← 1;
+
+repeat
+    :【步骤 1】主题分配
+    tᵢ ← f_θ(qᵢ)
+    基于查询生成主题标签;
+
+    :【步骤 2】主题引导检索
+    dᵢ ← Retriever(qᵢ, tᵢ; D)
+    仅在同主题文档库中检索;
+
+    :【步骤 3】CoT 推理链生成
+    cᵢ ← CoT_Generator(qᵢ, dᵢ)
+    生成中间推理步骤;
+
+    :上下文历史更新
+    c₁:i ← c₁:i + cᵢ;
+
+    :【步骤 4】生成候选答案
+    âᵢ ← LLM(q, dᵢ, c₁:i)
+    融合查询、文档、累积推理链;
+
+    :【步骤 5】双校验器评估
+    - Usefulness Grader：查询有用性
+    - Hallucination Grader：事实一致性校验;
+
+    if (两项校验均通过？) then (是)
+        :最终答案 â ← âᵢ;
+        break
+    else (否)
+        :【步骤 6】查询重写
+        qᵢ₊₁ ← RewriteQuery(qᵢ, âᵢ, cᵢ)
+        LLM优化查询，弥补信息缺口;
+
+        :更新迭代次数
+        i ← i + 1;
+    endif
+repeat while (i ≤ N)
+
+if (最终答案 â 为空?) then (是)
+    :最终答案 â ← 最后一轮候选答案 âᵢ;
+endif
+
+:输出最终答案 â;
+
+end
+@enduml

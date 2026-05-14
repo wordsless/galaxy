@@ -24,17 +24,11 @@
 
 package com.github.wordsless.galaxy.core.preprocessor;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.networknt.schema.Schema;
-import dev.langchain4j.model.chat.ChatModel;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.github.wordsless.galaxy.core.ChatModelRequest;
 import com.github.wordsless.galaxy.core.ChatModelDelegator;
-import com.github.wordsless.galaxy.core.exception.NamedEntityRecognizeException;
 
-import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 
 /**
  * 基于远程ChatModel的命名实体识别器
@@ -43,44 +37,25 @@ import java.util.Objects;
  * 2. 入参空值校验
  * 3. 异常上下文补充
  */
-public class NamedEntityRecognizerWithChatModel
-        extends ChatModelDelegator
-        implements NamedEntityRecognizer {
+public class NamedEntityRecognizerWithChatModel implements NamedEntityRecognizer {
 
-    public NamedEntityRecognizerWithChatModel(
-            ChatModel chatModel,
-            String promptTemplate,
-            Schema schema,
-            ObjectMapper mapper) {
-        // 严格校验入参，快速失败
-        super(
-                Objects.requireNonNull(chatModel, "ChatModel不能为空"),
-                Objects.requireNonNull(promptTemplate, "提示词模板不能为空"),
-                Objects.requireNonNull(schema, "Schema校验规则不能为空"),
-                Objects.requireNonNull(mapper, "ObjectMapper不能为空")
-        );
+    private final ChatModelDelegator<Map<String, String>> chatModelDelegator;
+
+    private final ChatModelRequest namedEntityRequest;
+
+    public NamedEntityRecognizerWithChatModel(final ChatModelDelegator<Map<String, String>> chatModelDelegator,
+                                              final ChatModelRequest namedEntityRequest) {
+        this.chatModelDelegator = chatModelDelegator;
+        this.namedEntityRequest = namedEntityRequest;
     }
 
     @Override
-    public Map<String, String> recognize(String rawQuery) {
-        // 校验原始查询
-        if (rawQuery == null || rawQuery.isBlank()) {
-            throw new IllegalArgumentException("原始查询字符串不能为空或空白");
-        }
-
-        try {
-            // 执行并传入原始查询（用于异常上下文）
-            String json = super.execute(3, rawQuery, null);
-            return mapper.readValue(json, HashMap.class);
-        } catch (JsonMappingException e) {
-            throw new NamedEntityRecognizeException(
-                    "StructuredQuery反序列化失败，原始查询：" + rawQuery,
-                    e, 3, super.promptTemplate);
-        } catch (JsonProcessingException e) {
-            throw new NamedEntityRecognizeException(
-                    "JSON处理失败，原始查询：" + rawQuery,
-                    e, 3, super.promptTemplate
-            );
-        }
+    public void process(Map<String, ?> context) {
+        var rawQuery= (String) context.get("RawQuery");
+        if(rawQuery == null || rawQuery.isEmpty())
+            throw new NullPointerException("RawQuery is null");
+        var request = namedEntityRequest.withRawQuery(rawQuery);
+        var NERs = chatModelDelegator.delegate(request, new TypeReference<Map<String, String>>() {});
+        ((Map) context).put("NERs", NERs);
     }
 }

@@ -24,8 +24,6 @@
 
 package com.github.wordsless.galaxy.core;
 
-import com.github.wordsless.galaxy.core.entity.Document;
-
 import java.util.List;
 
 public interface Reranker {
@@ -34,6 +32,6 @@ public interface Reranker {
 	 * 
 	 * @param alignedDocs
 	 */
-	List<Document> rerank(List<Document> alignedDocs);
+	List<String> rerank(List<String> alignedDocs);
 
 }

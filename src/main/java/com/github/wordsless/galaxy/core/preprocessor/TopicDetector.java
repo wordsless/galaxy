@@ -24,8 +24,33 @@
 
 package com.github.wordsless.galaxy.core.preprocessor;
 
+import com.github.wordsless.galaxy.core.utils.BERTopicService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
+import java.io.IOException;
 import java.util.Map;
 
-public interface NamedEntityRecognizer extends IQueryFilter {
+@Component
+public class TopicDetector implements IQueryFilter {
 
+    private BERTopicService topicService;
+
+    @Autowired
+    public TopicDetector(BERTopicService topicService) {
+        this.topicService = topicService;
+    }
+
+    @Override
+    public void process(Map<String, ?> context) {
+        String query = (String) context.get("RawQuery");
+        if (query == null || query.isEmpty())
+            throw new IllegalArgumentException("query is null or empty");
+        try {
+            var labels = this.topicService.predictTopics(query);
+            ((Map)context).put("TOPICs", labels);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
 }

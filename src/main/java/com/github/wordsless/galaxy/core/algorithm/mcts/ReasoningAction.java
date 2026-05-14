@@ -22,10 +22,9 @@
  * SOFTWARE.
  */
 
-package com.github.wordsless.galaxy.core.preprocessor;
+package com.github.wordsless.galaxy.core.algorithm.mcts;
 
-import java.util.Map;
+public enum ReasoningAction {
 
-public interface NamedEntityRecognizer extends IQueryFilter {
-
+    SAY, QT, RA, DA, SA, NONE
 }

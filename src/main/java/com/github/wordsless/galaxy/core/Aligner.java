@@ -24,8 +24,6 @@
 
 package com.github.wordsless.galaxy.core;
 
-import com.github.wordsless.galaxy.core.entity.Document;
-
 import java.util.List;
 
 public interface Aligner {
@@ -34,6 +32,6 @@ public interface Aligner {
 	 * 
 	 * @param docs
 	 */
-	List<Document> align(List<Document> docs);
+	List<String> align(List<String> docs);
 
 }

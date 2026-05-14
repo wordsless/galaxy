@@ -27,8 +27,6 @@ package com.github.wordsless.galaxy.core;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.github.wordsless.galaxy.core.entity.ChatModelRequest;
-import com.github.wordsless.galaxy.core.response.AbstractBasicResponse;
 import dev.langchain4j.model.chat.ChatModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -118,7 +116,7 @@ public class ChatModelDelegator<T> {
         throw new ChatModelInvokerException("LLM call failed, reached max retry count: " + maxRetryCount);
     }
 
-    public T delegate(final ChatModelRequest<T> request,
+    public T delegate(final ChatModelRequest request,
                       final TypeReference<T> typeReference) {
         return this.delegate(3, request, typeReference);
     }

@@ -22,10 +22,10 @@
  * SOFTWARE.
  */
 
-package com.github.wordsless.galaxy.core.preprocessor;
+package com.github.wordsless.galaxy.core.orchestrator;
 
 import java.util.Map;
 
-public interface NamedEntityRecognizer extends IQueryFilter {
+public abstract class AbstractBasicOrchestrator implements Orchestrator{
 
 }

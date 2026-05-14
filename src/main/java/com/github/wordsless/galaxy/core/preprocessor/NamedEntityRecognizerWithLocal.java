@@ -24,14 +24,14 @@
 
 package com.github.wordsless.galaxy.core.preprocessor;
 
-import com.hankcs.hanlp.seg.common.Term;
-import com.hankcs.hanlp.tokenizer.StandardTokenizer;
 import com.github.wordsless.galaxy.core.exception.NamedEntityRecognizeException;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.stream.Collectors;
+
+import com.hankcs.hanlp.seg.common.Term;
+import com.hankcs.hanlp.tokenizer.StandardTokenizer;
 
 /**
  * 基于HanLP的本地命名实体识别器
@@ -51,13 +51,13 @@ public class NamedEntityRecognizerWithLocal implements NamedEntityRecognizer {
 
     /**
      * 核心NER方法：基于HanLP提取实体，封装为StructuredQuery
-     * @param rawQuery 用户原始查询
      * @return 结构化查询对象（核心填充nerEntities，其他字段默认值）
      * @throws IllegalArgumentException 入参为空/空白时抛出
      * @throws NamedEntityRecognizeException HanLP执行失败时抛出
      */
     @Override
-    public Map<String, String> recognize(String rawQuery) {
+    public void process(Map<String, ?> context) {
+        String rawQuery = (String) context.get("RawQuery");
         // 1. 入参校验
         if (rawQuery == null || rawQuery.isBlank()) {
             throw new IllegalArgumentException("原始查询字符串不能为空或空白");
@@ -75,7 +75,7 @@ public class NamedEntityRecognizerWithLocal implements NamedEntityRecognizer {
                             // 解决重复词冲突（保留第一个）
                             (oldVal, newVal) -> oldVal
                     ));
-            return termMap;
+            ((Map) context).put("NERs", termMap);
         } catch (Exception e) {
             // 封装HanLP执行异常，保留上下文
             throw new NamedEntityRecognizeException(
@@ -85,13 +85,4 @@ public class NamedEntityRecognizerWithLocal implements NamedEntityRecognizer {
         }
     }
 
-    /**
-     * 扩展方法：自定义HanLP实体类型（可选）
-     * @param customEntityTypes 自定义需要提取的实体类型（如"nr"/"ns"）
-     */
-    public void setSupportedEntityTypes(List<String> customEntityTypes) {
-        Objects.requireNonNull(customEntityTypes, "自定义实体类型列表不能为空");
-        SUPPORTED_ENTITY_TYPES.clear();
-        SUPPORTED_ENTITY_TYPES.addAll(customEntityTypes);
-    }
 }

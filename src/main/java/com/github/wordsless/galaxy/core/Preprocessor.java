@@ -23,58 +23,43 @@
 
 package com.github.wordsless.galaxy.core;
 
-import lombok.RequiredArgsConstructor;
+import com.github.wordsless.galaxy.core.preprocessor.IQueryFilter;
+import lombok.Getter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import com.github.wordsless.galaxy.core.preprocessor.NamedEntityRecognizer;
-import com.github.wordsless.galaxy.core.preprocessor.QueryEnhancer;
+import org.springframework.stereotype.Component;
+
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 
-@RequiredArgsConstructor
+@Component
 public class Preprocessor {
 
 	private static final Logger logger = LoggerFactory.getLogger(Preprocessor.class);
 
-	private final NamedEntityRecognizer ner;
+	private final List<IQueryFilter> filters;
 
-	private final QueryEnhancer enhancer;
+	@Getter
+    private final Map<String, ?> context;
 
-	/**
-	 * Preprocess raw query with NER and query enhancement.
-	 *
-	 * @param rawQuery original user query
-	 * @return enhanced query list
-	 * @throws NullPointerException if rawQuery is null
-	 * @throws IllegalStateException if NER returns empty result
-	 */
-	public List<String> process(final String rawQuery, final Map<String, String> outNERs) {
-		// Validate input
-		Objects.requireNonNull(rawQuery, "rawQuery cannot be null");
-		if (rawQuery.isBlank()) {
-			throw new IllegalArgumentException("rawQuery cannot be blank");
-		}
-
-		// Execute NER
-		Map<String, String> entites = ner.recognize(rawQuery);
-		if(outNERs != null) {
-			outNERs.putAll(entites);
-		}
-		logger.debug("NER recognition completed, result size: {}", entites == null ? 0 : entites.size());
-
-		// Validate NER result
-		if (entites == null || entites.isEmpty()) {
-			logger.error("NER returned empty entites for query: {}", rawQuery);
-			throw new IllegalStateException("NER entites cannot be empty");
-		}
-
-		// Execute enhancement
-		List<String> rewritedQueries = enhancer.enhance(entites);
-		logger.debug("Query enhancement completed, rewrited query count: {}", rewritedQueries == null ? 0 : rewritedQueries.size());
-		if(rewritedQueries == null || rewritedQueries.isEmpty()) {
-			logger.error("enhancer returned empty rewritedQueries for query: {}", rawQuery);
-		}
-		return rewritedQueries;
+	public Preprocessor() {
+		this.filters = new ArrayList<>();
+		this.context = new ConcurrentHashMap<String, Object>();
 	}
+
+	public int add(final IQueryFilter filter) {
+		this.filters.add(filter);
+		return filters.size();
+	}
+
+	public Map<String, ?> next(final String rawQuery) {
+		((Map) this.context).put("RawQuery", rawQuery);
+		for(var filter : this.filters) {
+			filter.process(context);
+		}
+		return context;
+	}
+
 }

@@ -22,10 +22,9 @@
  * SOFTWARE.
  */
 
-package com.github.wordsless.galaxy.core.preprocessor;
+package com.github.wordsless.galaxy.core.algorithm.mcts;
 
-import java.util.Map;
+public interface Accumulator {
 
-public interface NamedEntityRecognizer extends IQueryFilter {
-
+    double accumulate(ReasoningTreeNode<?, ?> node);
 }
