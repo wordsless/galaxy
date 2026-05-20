@@ -22,8 +22,11 @@
  * SOFTWARE.
  */
 
-package com.github.wordsless.galaxy.core.algorithm.mcts;
+package com.github.wordsless.galaxy.core.algorithm.air;
 
-public interface Simulator {
-    double simulate(ReasoningTreeNode<?, ?> node, int minDepth, int maxDepth);
+import com.github.wordsless.galaxy.core.algorithm.mcts.MCTSNode;
+
+public interface Accumulator {
+
+    double accumulate(MCTSNode<?> node);
 }

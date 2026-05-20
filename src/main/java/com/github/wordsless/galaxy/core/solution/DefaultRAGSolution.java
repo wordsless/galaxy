@@ -46,7 +46,7 @@ public class DefaultRAGSolution {
 
     private final Reranker reranker;
 
-    private final List<Scorer> scorers;
+    private final List<Evaluator> evaluators;
 
     private final Retrier retrier;
 
@@ -66,7 +66,7 @@ public class DefaultRAGSolution {
                               @NonNull
                               final Reranker reranker,
                               @NonNull
-                              final List<Scorer> scorers,
+                              final List<Evaluator> evaluators,
                               @NonNull
                               final Retrier retrier,
                               @NonNull
@@ -79,7 +79,7 @@ public class DefaultRAGSolution {
         this.orchestrator       = orchestrator;
         this.aligner            = aligner;
         this.reranker           = reranker;
-        this.scorers            = scorers;
+        this.evaluators = evaluators;
         this.retrier            = retrier;
         this.generateRequest    = generateRequest;
         this.chatModelDelegator = chatModelDelegator;
@@ -99,8 +99,8 @@ public class DefaultRAGSolution {
             var request = buildRequestWithContext(context, generateRequest);
             var answer = this.chatModelDelegator.delegate(request, new TypeReference<String>() {});
             ((Map) context).put("Answer", answer);
-            for(var scorer : this.scorers) {
-                scorer.score(context);
+            for(var scorer : this.evaluators) {
+                scorer.evaluate(context);
             }
             retry = retrier.retrie(context);
             c++;

@@ -26,8 +26,6 @@ package com.github.wordsless.galaxy.core;
 
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
-import com.github.wordsless.galaxy.core.algorithm.mcts.ReasoningAction;
-import com.github.wordsless.galaxy.core.entity.Conversation;
 import lombok.*;
 
 import java.util.List;
@@ -87,10 +85,12 @@ public class ChatModelRequest {
     List<String> documents;
 
     /** Relevant contextual information or conversation history */
-    List<Conversation> context;
+    String context;
 
     /** Structured output format specification;*/
     String outputFormat;
+
+    String answer;
 
     // ==================== Generation Parameters ====================
 

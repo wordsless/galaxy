@@ -22,10 +22,37 @@
  * SOFTWARE.
  */
 
-package com.github.wordsless.galaxy.core.algorithm.mcts;
+package com.github.wordsless.galaxy.core.algorithm.air;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.github.wordsless.galaxy.core.ChatModelDelegator;
+import com.github.wordsless.galaxy.core.ChatModelRequest;
+import org.jspecify.annotations.NonNull;
 
 import java.util.List;
 
-public interface ConsistencyVoter {
-    String vote(List<String> answers);
+public class QueryTransformation extends AbstractAction<ReasoningState<List<String>>> {
+
+    private final ChatModelDelegator<ReasoningState<List<String>>> delegate;
+
+    public QueryTransformation(@NonNull final ChatModelRequest template,
+                               @NonNull final ChatModelDelegator<ReasoningState<List<String>>> delegate) {
+        super(template);
+        this.delegate = delegate;
+    }
+
+    @Override
+    public String getLabel() {
+        return "QT";
+    }
+
+    @Override
+    protected TypeReference<ReasoningState<List<String>>> getTypeReference() {
+        return new TypeReference<ReasoningState<List<String>>>() {};
+    }
+
+    @Override
+    protected ChatModelDelegator<ReasoningState<List<String>>> getDelegator() {
+        return delegate;
+    }
 }

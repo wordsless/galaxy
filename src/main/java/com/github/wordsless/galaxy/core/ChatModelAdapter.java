@@ -24,6 +24,8 @@
 
 package com.github.wordsless.galaxy.core;
 
+import com.github.wordsless.galaxy.core.entity.Document;
+
 import java.util.List;
 
 public interface ChatModelAdapter<T> {

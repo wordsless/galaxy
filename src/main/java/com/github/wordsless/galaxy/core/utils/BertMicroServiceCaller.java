@@ -26,6 +26,9 @@ package com.github.wordsless.galaxy.core.utils;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -33,11 +36,14 @@ import java.util.List;
 import java.util.Map;
 
 @Component
-public class BERTopicService {
+public class BertMicroServiceCaller {
 
+    private final static Logger logger = LoggerFactory.getLogger(BertMicroServiceCaller.class);
 
     // BERTopic 微服务地址（改成你自己的）
-    private static final String BERTOPIC_API = "http://127.0.0.1:8000/topic/predict";
+    private String BERTOPIC_API = "http://127.0.0.1:8000/topic/predict";
+
+    private String DPR_RETRIEVER_ROUTER = "http://127.0.0.1:8000/router";
 
     // Jackson（Spring 自带，spring-context 已包含）
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -47,15 +53,32 @@ public class BERTopicService {
      * @param query 待分析文本列表
      * @return 主题结果
      */
-    public List<String> predictTopics(String query) throws IOException {
-        // 1. 构造请求 JSON
-        Map<String, String> request = Map.of("texts", query);
-        String jsonRequest = objectMapper.writeValueAsString(request);
+    public List<String> predictTopics(String query) {
+        try {
+            // 1. 构造请求 JSON
+            Map<String, String> request = Map.of("texts", query);
+            String jsonRequest = objectMapper.writeValueAsString(request);
 
-        // 2. 调用 BERTopic 微服务（核心调用）
-        String jsonResponse = HttpUtil.post(BERTOPIC_API, jsonRequest);
+            // 2. 调用 BERTopic 微服务（核心调用）
+            String jsonResponse = HttpUtil.post(BERTOPIC_API, jsonRequest, 3, 500);
 
-        // 3. 解析返回结果
-        return objectMapper.readValue(jsonResponse, new TypeReference<List<String>>() {});
+            // 3. 解析返回结果
+            return objectMapper.readValue(jsonResponse, new TypeReference<List<String>>() {});
+        } catch(Exception e) {
+            logger.error(e.getMessage(), e);
+        }
+        return null;
+    }
+
+    public float[] queryEncode(final String type, final String query) {
+        try {
+            Map<String, String> request = Map.of("texts", query);
+            String jsonRequest = objectMapper.writeValueAsString(request);
+            String jsonResponse = HttpUtil.post(DPR_RETRIEVER_ROUTER+"/"+type, jsonRequest, 3, 500);
+            return objectMapper.readValue(jsonResponse, new TypeReference<float[]>() {});
+        } catch (Exception e) {
+            logger.error(e.getMessage(), e);
+        }
+        return null;
     }
 }

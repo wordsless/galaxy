@@ -24,7 +24,7 @@
 
 package com.github.wordsless.galaxy.core.preprocessor;
 
-import com.github.wordsless.galaxy.core.utils.BERTopicService;
+import com.github.wordsless.galaxy.core.utils.BertMicroServiceCaller;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -34,10 +34,10 @@ import java.util.Map;
 @Component
 public class TopicDetector implements IQueryFilter {
 
-    private BERTopicService topicService;
+    private BertMicroServiceCaller topicService;
 
     @Autowired
-    public TopicDetector(BERTopicService topicService) {
+    public TopicDetector(BertMicroServiceCaller topicService) {
         this.topicService = topicService;
     }
 

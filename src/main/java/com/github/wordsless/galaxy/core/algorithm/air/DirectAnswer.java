@@ -22,16 +22,35 @@
  * SOFTWARE.
  */
 
-package com.github.wordsless.galaxy.core;
+package com.github.wordsless.galaxy.core.algorithm.air;
 
-import java.util.List;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.github.wordsless.galaxy.core.ChatModelDelegator;
+import com.github.wordsless.galaxy.core.ChatModelRequest;
+import org.jspecify.annotations.NonNull;
 
-public interface Retriever {
+public class DirectAnswer extends AbstractAction<ReasoningState<String>> {
 
-	/**
-	 * 
-	 * @param rewritedQuery
-	 */
-	List<String> retrieve(String rewritedQuery);
+    private final ChatModelDelegator<ReasoningState<String>> delegator;
 
+    public DirectAnswer(@NonNull ChatModelRequest template,
+                        @NonNull ChatModelDelegator<ReasoningState<String>> delegator) {
+        super(template);
+        this.delegator = delegator;
+    }
+
+    @Override
+    public String getLabel() {
+        return "DA";
+    }
+
+    @Override
+    protected TypeReference<ReasoningState<String>> getTypeReference() {
+        return new TypeReference<ReasoningState<String>>() {};
+    }
+
+    @Override
+    protected ChatModelDelegator<ReasoningState<String>> getDelegator() {
+        return delegator;
+    }
 }

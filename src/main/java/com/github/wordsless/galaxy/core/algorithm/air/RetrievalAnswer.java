@@ -22,16 +22,37 @@
  * SOFTWARE.
  */
 
-package com.github.wordsless.galaxy.core;
+package com.github.wordsless.galaxy.core.algorithm.air;
 
-import java.util.List;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.github.wordsless.galaxy.core.ChatModelDelegator;
+import com.github.wordsless.galaxy.core.ChatModelRequest;
+import com.github.wordsless.galaxy.core.Retriever;
+import com.github.wordsless.galaxy.core.algorithm.mcts.MCTSNode;
+import org.jspecify.annotations.NonNull;
 
-public interface Retriever {
+public class RetrievalAnswer extends AbstractAction<ReasoningState<String>> {
 
-	/**
-	 * 
-	 * @param rewritedQuery
-	 */
-	List<String> retrieve(String rewritedQuery);
+    private Retriever retriever;
 
+    public RetrievalAnswer(@NonNull ChatModelRequest template,
+                           @NonNull ChatModelDelegator<ReasoningState<String>> delegator) {
+        super(template);
+    }
+
+
+    @Override
+    protected TypeReference<ReasoningState<String>> getTypeReference() {
+        return new TypeReference<ReasoningState<String>>() {};
+    }
+
+    @Override
+    protected ChatModelDelegator<ReasoningState<String>> getDelegator() {
+        return null;
+    }
+
+    @Override
+    public String getLabel() {
+        return "RA";
+    }
 }

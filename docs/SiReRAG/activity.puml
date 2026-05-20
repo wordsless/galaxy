@@ -1,0 +1,40 @@
+@startuml SiReRAG_Algorithm_Activity_Diagram
+' 活动图：SiReRAG 双树检索（Similarity + Relativity Dual-Tree Retrieval）
+start
+
+:用户输入原始查询 Query;
+:对 Query 生成【语义向量】和【关系向量】;
+
+split
+    :===== 支路 A：相似树检索 =====;
+    :加载 Similar Tree（预构建）;
+    :从根节点开始 DFS 遍历;
+    :计算节点【语义相似度】;
+    if (相似度 ≥ 阈值?) then (是)
+        :加入相似候选集;
+    else (否)
+        :剪枝当前分支;
+    endif
+    :遍历完成，得到相似结果集;
+split again
+    :===== 支路 B：关联树检索 =====;
+    :加载 Related Tree（预构建）;
+    :从根节点开始 DFS 遍历;
+    :计算节点【关系相似度】;
+    if (相似度 ≥ 阈值?) then (是)
+        :沿关联链路多跳扩展;
+        :加入关联候选集;
+    else (否)
+        :剪枝当前分支;
+    endif
+    :遍历完成，得到关联结果集;
+end split
+
+:===== 双路结果融合 =====;
+:合并相似结果集 + 关联结果集;
+:按综合相似度排序;
+:去重、过滤低置信度片段;
+:输出最终检索上下文;
+
+stop
+@enduml

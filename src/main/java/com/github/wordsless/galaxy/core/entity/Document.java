@@ -22,9 +22,18 @@
  * SOFTWARE.
  */
 
-package com.github.wordsless.galaxy.core.algorithm.mcts;
+package com.github.wordsless.galaxy.core.entity;
 
-public enum ReasoningAction {
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-    SAY, QT, RA, DA, SA, NONE
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Document {
+    private Long id;
+    private float distance;
+    private float[] embedding;
+    private String content;
 }

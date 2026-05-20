@@ -22,16 +22,28 @@
  * SOFTWARE.
  */
 
-package com.github.wordsless.galaxy.core;
+package com.github.wordsless.galaxy.core.algorithm.tree;
 
+import lombok.Data;
+
+import java.util.ArrayList;
 import java.util.List;
 
-public interface Retriever {
+@Data
+public class TreeNode {
 
-	/**
-	 * 
-	 * @param rewritedQuery
-	 */
-	List<String> retrieve(String rewritedQuery);
+    protected Long id;
 
+    protected int depth;
+
+    protected TreeNode parent;
+
+    protected List<TreeNode> children;
+
+    public TreeNode(final Long id, final int depth, final TreeNode parent) {
+        this.id = id;
+        this.depth = 0;
+        this.parent = parent;
+        this.children = new ArrayList<>();
+    }
 }

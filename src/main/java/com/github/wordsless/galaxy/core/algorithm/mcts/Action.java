@@ -22,16 +22,11 @@
  * SOFTWARE.
  */
 
-package com.github.wordsless.galaxy.core;
+package com.github.wordsless.galaxy.core.algorithm.mcts;
 
-import java.util.List;
+public interface Action<S> {
 
-public interface Retriever {
+    String getLabel();
 
-	/**
-	 * 
-	 * @param rewritedQuery
-	 */
-	List<String> retrieve(String rewritedQuery);
-
+    MCTSNode<S> transit(MCTSNode<S> node);
 }

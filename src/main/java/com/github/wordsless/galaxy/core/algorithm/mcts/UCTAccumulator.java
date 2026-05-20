@@ -21,52 +21,36 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+
 package com.github.wordsless.galaxy.core.algorithm.mcts;
 
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
+import com.github.wordsless.galaxy.core.algorithm.air.Accumulator;
 
-@Component
-@RequiredArgsConstructor
-public class UCTAccumulator {
-    private final MctsConfig mctsConfig;
+/**
+ * UCT（Upper Confidence Bound for Trees）累加器实现
+ * 核心公式：UCT = (节点收益/访问次数) + C * sqrt(ln(父节点访问次数)/节点访问次数)
+ * C 为探索系数，通常取 sqrt(2)
+ */
+public class UCTAccumulator implements Accumulator {
 
-    /**
-     * 计算给定节点的 UCT 值（Upper Confidence Bound for Trees）。
-     * @param node 待计算的节点
-     * @return UCT 值，未访问节点返回 +∞ 以优先探索，
-     *         空节点或异常返回 -∞
-     */
-    public double accumulate(ReasoningTreeNode<?, ?> node) {
-        if (node == null) {
-            return Double.NEGATIVE_INFINITY;
-        }
+    // 探索系数（平衡探索与利用）
+    private static final double EXPLORATION_CONSTANT = Math.sqrt(2);
 
-        int childVisits = node.getVisitCount();
-        // 未访问的节点拥有最高的优先级（鼓励探索）
-        if (childVisits == 0) {
+    @Override
+    public double accumulate(MCTSNode<?> node) {
+        // 未被访问过的节点优先选择（保证探索性）
+        if (node.getVisitCount() == 0) {
             return Double.POSITIVE_INFINITY;
         }
 
-        // 利用项：平均奖励 Q(s,a)
-        double exploitation = node.getQValue();
-
-        // 只有非根节点才需要计算探索项（根节点不存在父节点）
-        ReasoningTreeNode<?, ?> parent = node.getParent();
-        if (parent == null) {
-            return exploitation;
+        MCTSNode<?> parent = node.getParent();
+        if (parent == null || parent.getVisitCount() == 0) {
+            return 0.0;
         }
 
-        int parentVisits = parent.getVisitCount();
-        // 避免父节点访问数为 0 导致的除零错误（实际上父节点至少被访问一次）
-        if (parentVisits == 0) {
-            return exploitation;
-        }
-
-        // 探索项：c * sqrt( ln(N_parent) / N_child )
-        double exploration = mctsConfig.getExplorationConstant() *
-                Math.sqrt(Math.log(parentVisits) / childVisits);
-
+        // UCT 核心公式
+        double exploitation = node.getSumValue() / node.getVisitCount(); // 利用（当前节点收益）
+        double exploration = EXPLORATION_CONSTANT * Math.sqrt(Math.log(parent.getVisitCount()) / node.getVisitCount()); // 探索（未探索节点的奖励）
         return exploitation + exploration;
     }
 }

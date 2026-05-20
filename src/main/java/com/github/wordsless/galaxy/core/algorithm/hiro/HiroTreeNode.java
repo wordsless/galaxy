@@ -22,9 +22,24 @@
  * SOFTWARE.
  */
 
-package com.github.wordsless.galaxy.core.algorithm.mcts;
+package com.github.wordsless.galaxy.core.algorithm.hiro;
 
-public interface Accumulator {
+import com.github.wordsless.galaxy.core.algorithm.tree.TreeNode;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 
-    double accumulate(ReasoningTreeNode<?, ?> node);
+@EqualsAndHashCode(callSuper = true)
+@Data
+public class HiroTreeNode extends TreeNode {
+    // 节点内容
+    private String content;
+
+    // 节点向量 (提前向量化存储)
+    private float[] vector;
+
+    public HiroTreeNode(final Long id, final int depth, final TreeNode parent, final String content, final float[] vector) {
+        super(id, depth, parent);
+        this.content = content;
+        this.vector = vector;
+    }
 }

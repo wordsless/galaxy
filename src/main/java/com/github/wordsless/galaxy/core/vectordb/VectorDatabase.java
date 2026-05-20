@@ -22,16 +22,19 @@
  * SOFTWARE.
  */
 
-package com.github.wordsless.galaxy.core;
+package com.github.wordsless.galaxy.core.vectordb;
+
+import com.github.wordsless.galaxy.core.entity.Document;
+import com.github.wordsless.galaxy.core.entity.VectorEntity;
 
 import java.util.List;
 
-public interface Retriever {
-
-	/**
-	 * 
-	 * @param rewritedQuery
-	 */
-	List<String> retrieve(String rewritedQuery);
-
+public interface VectorDatabase {
+    void connect();
+    void createCollection(String collectionName, int dimension);
+    void insert(String collectionName, List<VectorEntity> entities);
+    List<Document> search(String collectionName, float[] queryVector, int topK);
+    VectorEntity getById(String collectionName, Long id);
+    void deleteById(String collectionName, Long id);
+    void close();
 }

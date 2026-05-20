@@ -25,6 +25,7 @@
 package com.github.wordsless.galaxy.core;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.wordsless.galaxy.core.entity.Document;
 import com.networknt.schema.Schema;
 import dev.langchain4j.model.chat.ChatModel;
 

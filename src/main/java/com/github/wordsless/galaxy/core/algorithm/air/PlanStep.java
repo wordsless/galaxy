@@ -22,16 +22,51 @@
  * SOFTWARE.
  */
 
-package com.github.wordsless.galaxy.core;
+package com.github.wordsless.galaxy.core.algorithm.air;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Data;
+import lombok.NonNull;
+
+import java.util.ArrayList;
 import java.util.List;
 
-public interface Retriever {
+@Data
+public class PlanStep {
 
-	/**
-	 * 
-	 * @param rewritedQuery
-	 */
-	List<String> retrieve(String rewritedQuery);
+    private Integer SN;
+
+    private ReasoningAction action;
+
+    private String content;
+
+    @JsonProperty("depend_on")
+    private Integer dependOn;
+
+    private List<PlanStep> children;
+
+    private boolean used;
+
+    public PlanStep(@NonNull Integer SN,
+                    @NonNull ReasoningAction action,
+                    @NonNull String content) {
+        this.SN = SN;
+        this.action  = action;
+        this.content = content;
+        this.children = new ArrayList<>();
+    }
+
+    public void addChild(PlanStep child) {
+        this.children.add(child);
+    }
+
+    public PlanStep next() {
+        PlanStep next = null;
+        for(var child : children) {
+            if(!child.used)
+                next = child;
+        }
+        return next;
+    }
 
 }

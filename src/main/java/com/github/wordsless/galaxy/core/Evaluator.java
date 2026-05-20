@@ -22,51 +22,26 @@
  * SOFTWARE.
  */
 
-package com.github.wordsless.galaxy.core.algorithm.mcts;
+package com.github.wordsless.galaxy.core;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.Data;
-import lombok.NonNull;
+import java.util.Map;
 
-import java.util.ArrayList;
-import java.util.List;
+/**
+ * Core evaluation interface for calculating metrics based on context data.
+ * This interface defines the standard contract for all evaluator implementations
+ * in the system, which evaluate given context and return metric results as key-value pairs.
+ *
+ * The key represents the metric name (e.g., "usefulness", "faithfulness"),
+ * and the value represents the metric score (usually a double between 0 and 1).
+ */
+public interface Evaluator {
 
-@Data
-public class PlanStep {
-
-    private Integer SN;
-
-    private ReasoningAction action;
-
-    private String content;
-
-    @JsonProperty("depend_on")
-    private Integer dependOn;
-
-    private List<PlanStep> children;
-
-    private boolean used;
-
-    public PlanStep(@NonNull Integer SN,
-                    @NonNull ReasoningAction action,
-                    @NonNull String content) {
-        this.SN = SN;
-        this.action  = action;
-        this.content = content;
-        this.children = new ArrayList<>();
-    }
-
-    public void addChild(PlanStep child) {
-        this.children.add(child);
-    }
-
-    public PlanStep next() {
-        PlanStep next = null;
-        for(var child : children) {
-            if(!child.used)
-                next = child;
-        }
-        return next;
-    }
-
+    /**
+     * Evaluates the given context data and returns metric scores.
+     *
+     * @param context A map containing input data for evaluation (e.g., raw query, documents, answer)
+     *                Key examples: "RawQuery", "Docs", "Answer"
+     * @return A map of metric names to their corresponding double scores
+     */
+    Map<String, Double> evaluate(Map<String, ?> context);
 }

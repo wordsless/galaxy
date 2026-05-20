@@ -121,6 +121,12 @@
             <version>7.0.7</version>   <!-- 注意：7.0.7 需要 Java 25+，这里降级到主流版本 -->
         </dependency>
 
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-jdbc</artifactId>
+            <version>7.0.7</version> <!-- 稳定版，可根据项目修改 -->
+        </dependency>
+
         <!-- GUAVA -->
         <dependency>
             <groupId>com.google.guava</groupId>

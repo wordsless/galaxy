@@ -1,0 +1,40 @@
+@startuml HIRO_Hierarchical_Retrieval
+skinparam activity {
+    BackgroundColor #f9f9f9
+    BorderColor #333333
+    RoundCorner 5
+}
+skinparam decision {
+    BackgroundColor #f0f8ff
+    BorderColor #333333
+}
+skinparam arrow {
+    Color #333333
+    LineWidth 1.0
+}
+
+start
+:输入用户查询Q与长文档D;
+:构建层次化索引树\n文档→章节→段落→句子;
+:从根节点启动递归检索;
+:计算查询与当前节点相似度sim;
+
+if (sim ≥ 相似度阈值?) then (否)
+    :剪枝：丢弃该分支全部子节点;
+else (是)
+    :计算相似度增益Δ;
+    if (Δ ≥ 增益阈值?) then (否)
+        :停止递归，节点加入上下文;
+    else (是)
+        repeat :检索当前节点子节点;
+            if (到达叶子节点?) then (是)
+                :叶子节点加入上下文;
+            endif
+        repeat while (未遍历完子节点)
+    endif
+endif
+
+:聚合所有有效节点，生成精简上下文;
+:输入LLM生成最终答案;
+end
+@enduml
