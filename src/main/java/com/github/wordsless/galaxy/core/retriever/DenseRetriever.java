@@ -1,7 +1,7 @@
 package com.github.wordsless.galaxy.core.retriever;
 
 import com.github.wordsless.galaxy.core.Retriever;
-import com.github.wordsless.galaxy.core.utils.BertMicroServiceCaller;
+import com.github.wordsless.galaxy.core.utils.MicroServiceCaller;
 import com.github.wordsless.galaxy.core.vectordb.DocsEngine;
 import com.github.wordsless.galaxy.core.vectordb.VectorDatabase;
 import lombok.extern.slf4j.Slf4j;
@@ -29,14 +29,14 @@ import java.util.Objects;
 public class DenseRetriever implements Retriever {
 
     private final String collectionName;
-    private final BertMicroServiceCaller caller;
+    private final MicroServiceCaller caller;
     private final VectorDatabase vectorDatabase;
     private final DocsEngine engine;
     private final int topK;
     private final String algorithmType;
 
     public DenseRetriever(String collectionName,
-                          BertMicroServiceCaller caller,
+                          MicroServiceCaller caller,
                           VectorDatabase vectorDatabase,
                           DocsEngine engine,
                           int topK,

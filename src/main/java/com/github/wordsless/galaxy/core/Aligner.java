@@ -24,14 +24,16 @@
 
 package com.github.wordsless.galaxy.core;
 
+import com.github.wordsless.galaxy.core.entity.Document;
+
 import java.util.List;
 
 public interface Aligner {
 
 	/**
 	 * 
-	 * @param docs
+	 * @param docs candidate document set
 	 */
-	List<String> align(List<String> docs);
+	List<Document> align(List<Document> docs, long tokenCountLimit, int iterCount);
 
 }

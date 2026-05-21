@@ -1,0 +1,41 @@
+@startuml
+title DPA-RAG 双重偏好对齐组件图
+
+package "DPA-RAG 整体架构" {
+    [用户查询]
+    [检索器 Retriever]
+    [文档库]
+
+    package "外部对齐（External Alignment）" {
+        [偏好标注模块]
+        [多粒度损失训练]
+        [重排器 Reranker]
+    }
+
+    package "内部对齐（Internal Alignment）" {
+        [预训练LLM]
+        [预对齐训练模块]
+    }
+
+    package "SFT 指令微调" {
+        [SFT训练模块]
+        [最终对齐LLM]
+    }
+}
+
+' 数据流
+用户查询 --> 检索器
+文档库 --> 检索器
+检索器 --> 偏好标注模块
+偏好标注模块 --> 多粒度损失训练
+多粒度损失训练 --> 重排器
+
+检索器 --> 重排器 : 召回Top-K文档
+重排器 --> 预对齐训练模块 : 对齐后优选文档
+
+预训练LLM --> 预对齐训练模块
+预对齐训练模块 --> SFT训练模块 : 预对齐后LLM
+SFT训练模块 --> 最终对齐LLM
+
+最终对齐LLM --> [生成答案]
+@enduml

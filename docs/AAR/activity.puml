@@ -1,0 +1,22 @@
+@startuml AAR_Activity_Diagram
+start
+
+:开始;
+
+' === AAR 训练阶段 ===
+:输入源任务数据集 + 预训练检索器;
+:Source LM (Flan-T5-Base) 使用 FiD 交叉注意力对文档打分;
+:筛选出 LLM 偏好的 Top-K 文档;
+:合并人类标注正例 + LLM 偏好文档 → 新正例集;
+:使用 ANCE 挖掘难负例 → 构建负例集;
+:用正负例微调检索器 → 得到 AAR 检索器;
+
+' === 下游 RAG 推理阶段 ===
+:用户输入 Query;
+:AAR 检索器从知识库检索 Top-N 文档;
+:拼接 Query + 检索文档 → 输入目标 LLM;
+:目标 LLM 生成最终答案;
+
+:结束;
+end
+@enduml

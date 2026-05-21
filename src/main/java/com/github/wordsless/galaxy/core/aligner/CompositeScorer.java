@@ -22,35 +22,11 @@
  * SOFTWARE.
  */
 
-package com.github.wordsless.galaxy.core.preprocessor;
+package com.github.wordsless.galaxy.core.aligner;
 
-import com.github.wordsless.galaxy.core.utils.MicroServiceCaller;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
-
-import java.io.IOException;
 import java.util.Map;
 
-@Component
-public class TopicDetector implements IQueryFilter {
+public interface CompositeScorer {
 
-    private MicroServiceCaller topicService;
-
-    @Autowired
-    public TopicDetector(MicroServiceCaller topicService) {
-        this.topicService = topicService;
-    }
-
-    @Override
-    public void process(Map<String, ?> context) {
-        String query = (String) context.get("RawQuery");
-        if (query == null || query.isEmpty())
-            throw new IllegalArgumentException("query is null or empty");
-        try {
-            var labels = this.topicService.predictTopics(query);
-            ((Map)context).put("TOPICs", labels);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
+    double score(Map<String, Double> scores);
 }

@@ -28,12 +28,33 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+import java.util.Map;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class Document {
+public class Document implements Comparable<Document> {
+
     private Long id;
-    private float distance;
+
+    private Long tokenCount;
+
     private float[] embedding;
+
     private String content;
+
+    private Map<String, List<Double>> multiTurnValues;
+
+    private double score;
+
+    @Override
+    public int compareTo(Document other) {
+        // 示例：按 id 升序（可替换为其他字段）
+        if (this.getId() == null && other.getId() == null) return 0;
+        if (this.getId() == null) return -1;
+        if (other.getId() == null) return 1;
+        return Long.compare(this.getId(), other.getId());
+    }
+
 }

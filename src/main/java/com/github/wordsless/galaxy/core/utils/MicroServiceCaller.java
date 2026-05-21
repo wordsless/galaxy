@@ -26,19 +26,17 @@ package com.github.wordsless.galaxy.core.utils;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
 @Component
-public class BertMicroServiceCaller {
+public class MicroServiceCaller {
 
-    private final static Logger logger = LoggerFactory.getLogger(BertMicroServiceCaller.class);
+    private final static Logger logger = LoggerFactory.getLogger(MicroServiceCaller.class);
 
     // BERTopic 微服务地址（改成你自己的）
     private String BERTOPIC_API = "http://127.0.0.1:8000/topic/predict";

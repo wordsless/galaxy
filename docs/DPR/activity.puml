@@ -1,60 +1,20 @@
-@startuml DPR_Algorithm_Full_Activity_Diagram
+@startuml
 start
-partition "DPR 稠密检索整体流程" {
-    fork
-        partition "阶段1：训练阶段 Training" {
-            :初始化模型;
-            :构建Query Encoder(BERT);
-            :构建Context Encoder(BERT);
-            :两编码器权重独立不共享;
+:加载预训练LLM（未SFT）;
+:构建预对齐训练数据（外部对齐输出的高偏好文档）;
+:构造prompt：问题 + 偏好文档 + 约束;
+:开始内部预对齐训练;
 
-            :构建训练样本集;
-            :Question q(用户问题);
-            :Positive Passage p+(正样本段落);
-            :Negative Passages p-(负样本段落);
+repeat
+    :前向传播：依据文档生成回答;
+    :计算语言建模损失(LM Loss);
+    :反向传播更新LLM参数;
+    :验证：是否优先使用文档知识;
+repeat while (未达到收敛?) is (否)
 
-            :前向编码计算向量;
-            :q → QueryEncoder → 向量q;
-            :p+/p- → ContextEncoder → 向量p+/p-;
+:内部预对齐完成;
+:进入SFT指令微调阶段;
+:得到对齐检索知识的最终LLM;
 
-            :计算相似度(点积);
-            :sim(q,p+) = q·p+;
-            :sim(q,p-) = q·p-;
-
-            :计算多分类负对数似然损失;
-            note right: L = -log(exp(q·p+)/∑exp(q·pᵢ))
-            :反向传播更新参数;
-            :更新QueryEncoder权重;
-            :更新ContextEncoder权重;
-
-            if (模型收敛?) then (否)
-                :回到前向编码;
-            else (是)
-                :保存训练好的双编码器;
-            endif
-        }
-    fork again
-        partition "阶段2：推理/检索阶段 Inference" {
-            partition "离线建索引(一次性)" {
-                :加载训练后ContextEncoder;
-                :遍历全部文档段落;
-                :段落→ContextEncoder→文档向量;
-                :文档向量存入向量库(FAISS/Milvus);
-                :构建ANN向量索引(HNSW/IVF);
-            }
-
-            partition "在线实时检索" {
-                :接收用户原始查询raw query;
-                :raw query → QueryEncoder → 查询向量q;
-                :向量库ANN近似最近邻检索;
-                :计算q与所有文档向量相似度;
-                :按相似度降序排序;
-                :筛选Top‑K相关段落;
-                :输出Retrieved Passages(检索文档集);
-                :送入LLM作为RAG上下文;
-            }
-        }
-    endfork
-}
 end
 @enduml
