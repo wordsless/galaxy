@@ -24,9 +24,9 @@
 
 package com.github.wordsless.galaxy.core.preprocessor;
 
-import java.util.Map;
+import com.github.wordsless.galaxy.core.entity.Context;
 
 public interface IQueryFilter {
 
-    void process(Map<String, ?> context);
+    void process(Context context);
 }

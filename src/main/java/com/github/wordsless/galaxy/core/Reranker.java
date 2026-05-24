@@ -24,14 +24,18 @@
 
 package com.github.wordsless.galaxy.core;
 
+import ai.djl.translate.TranslateException;
+import com.github.wordsless.galaxy.core.entity.Context;
+import com.github.wordsless.galaxy.core.entity.Document;
+
 import java.util.List;
 
 public interface Reranker {
 
 	/**
 	 * 
-	 * @param alignedDocs
+	 * @param docs candidate documents
 	 */
-	List<String> rerank(List<String> alignedDocs);
+	List<Document> rerank(final List<Document> docs, final Context context);
 
 }

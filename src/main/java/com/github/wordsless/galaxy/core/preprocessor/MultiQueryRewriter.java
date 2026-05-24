@@ -26,7 +26,8 @@ package com.github.wordsless.galaxy.core.preprocessor;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.github.wordsless.galaxy.core.ChatModelDelegator;
-import com.github.wordsless.galaxy.core.ChatModelRequest;
+import com.github.wordsless.galaxy.core.entity.ChatModelRequest;
+import com.github.wordsless.galaxy.core.entity.Context;
 
 import java.util.List;
 import java.util.Map;
@@ -44,10 +45,9 @@ public class MultiQueryRewriter implements IQueryFilter {
     }
 
     @Override
-    public void process(Map<String, ?> context) {
-        String rewritedQuery = context.get("rewritedQuery").toString();
-        Map<String, String> ners = (Map<String, String>) context.get("NERs");
-        var request = multiRewriteRequest.withRawQuery(rewritedQuery).withNERs(ners);
+    public void process(Context context) {
+        var rawQuery = context.getQuery();
+        var request = multiRewriteRequest.withRawQuery(rawQuery.getQuery()).withNERs(ners);
         var results = this.chatModelDelegator.delegate(request, new TypeReference<List<String>>() {});
         ((Map) context).put("RewritedMultiQueries", results);
     }

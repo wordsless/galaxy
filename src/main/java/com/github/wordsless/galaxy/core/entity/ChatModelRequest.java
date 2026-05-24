@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package com.github.wordsless.galaxy.core;
+package com.github.wordsless.galaxy.core.entity;
 
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
@@ -59,22 +59,8 @@ public class ChatModelRequest {
     /** Desired output language (e.g., "English", "Chinese") */
     String outputLanguage;
 
-    /**
-     * Optional simulation sequence data (e.g., steps of a recursive simulation,
-     * synthetic examples, or hypothetical execution traces).
-     * This is distinct from real `context` which holds actual conversation history
-     * or genuine inference tree nodes.
-     */
-    List<Map<ReasoningAction, Double>> simulationSequence;
-
     /** The raw query or input text */
-    String rawQuery;
-
-    Map<String, String> NERs;
-
-    List<String> rewritedMultiQueries;
-
-    List<String> topics;
+    Query rawQuery;
 
     /** List of behavioral rules the LLM must follow */
     List<String> rules;
@@ -82,10 +68,8 @@ public class ChatModelRequest {
     /** Additional constraints (e.g., length limits, forbidden content) */
     List<String> constraints;
 
-    List<String> documents;
-
     /** Relevant contextual information or conversation history */
-    String context;
+    Context context;
 
     /** Structured output format specification;*/
     String outputFormat;
@@ -99,14 +83,14 @@ public class ChatModelRequest {
      * Default: 0.7
      */
     @Builder.Default
-    double temperature = 0.7;
+    Double temperature = 0.7;
 
     /**
      * Nucleus sampling threshold (0.0 - 1.0). Only tokens with cumulative probability >= topP are considered.
      * Default: 1.0 (disabled)
      */
     @Builder.Default
-    double topP = 1.0;
+    Double topP = 1.0;
 
     /** Maximum number of tokens to generate. null = model's maximum allowed. */
     Integer maxTokens;
@@ -116,33 +100,33 @@ public class ChatModelRequest {
      * Default: 0.0
      */
     @Builder.Default
-    double presencePenalty = 0.0;
+    Double presencePenalty = 0.0;
 
     /**
      * Frequency penalty (-2.0 - 2.0). Positive values discourage frequent token repetition.
      * Default: 0.0
      */
     @Builder.Default
-    double frequencyPenalty = 0.0;
+    Double frequencyPenalty = 0.0;
 
     /** Number of completion choices to generate per prompt. Default: 1 */
     @Builder.Default
-    int n = 1;
+    Integer n = 1;
 
     /** Whether to stream partial results as they are generated. Default: false */
     @Builder.Default
-    boolean stream = false;
+    Boolean stream = false;
 
     /** Whether to return log probabilities of the generated tokens. Default: false */
     @Builder.Default
-    boolean logprobs = false;
+    Boolean logprobs = false;
 
     /** Whether to echo the prompt in the response. Default: false */
     @Builder.Default
-    boolean echo = false;
+    Boolean echo = false;
 
     /** Deterministic seed for reproducible results (not supported by all providers). */
-    Integer seed;
+    Long seed;
 
     /**
      * Number of completions generated server-side to choose the best one.

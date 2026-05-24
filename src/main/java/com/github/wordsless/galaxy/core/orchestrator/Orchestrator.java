@@ -24,10 +24,14 @@
 
 package com.github.wordsless.galaxy.core.orchestrator;
 
+import com.github.wordsless.galaxy.core.entity.Context;
+import com.github.wordsless.galaxy.core.entity.Document;
+import com.github.wordsless.galaxy.core.entity.EntityPair;
+import com.github.wordsless.galaxy.core.entity.Query;
+
 import java.util.List;
-import java.util.Map;
 
 public interface Orchestrator {
 
-    List<String> retrieve(Map<String, ?> context);
+    List<EntityPair<Query, List<Document>>> retrieve(Context context);
 }

@@ -26,7 +26,9 @@ package com.github.wordsless.galaxy.core.solution;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.github.wordsless.galaxy.core.*;
-import com.github.wordsless.galaxy.core.ChatModelRequest;
+import com.github.wordsless.galaxy.core.entity.ChatModelRequest;
+import com.github.wordsless.galaxy.core.entity.Context;
+import com.github.wordsless.galaxy.core.entity.Query;
 import com.github.wordsless.galaxy.core.orchestrator.Orchestrator;
 import lombok.NonNull;
 import org.springframework.beans.factory.annotation.Value;
@@ -50,30 +52,21 @@ public class DefaultRAGSolution {
 
     private final Retrier retrier;
 
-    private final ChatModelRequest generateRequest;
+    private final ChatModelRequest generateAnswerRequest;
 
-    private final ChatModelDelegator<String> chatModelDelegator;
+    private final ChatModelDelegator<Map<String, ?>> chatModelDelegator;
 
     @Value("max-retry-count")
     private final int maxRetryCount;
 
-    public DefaultRAGSolution(@NonNull
-                              final Preprocessor preprocessor,
-                              @NonNull
-                              final Orchestrator orchestrator,
-                              @NonNull
-                              final Aligner aligner,
-                              @NonNull
-                              final Reranker reranker,
-                              @NonNull
-                              final List<Evaluator> evaluators,
-                              @NonNull
-                              final Retrier retrier,
-                              @NonNull
-                              final ChatModelRequest generateRequest,
-                              @NonNull
-                              final ChatModelDelegator<String> chatModelDelegator,
-                              @NonNull
+    public DefaultRAGSolution(@NonNull final Preprocessor preprocessor,
+                              @NonNull final Orchestrator orchestrator,
+                              @NonNull final Aligner aligner,
+                              @NonNull final Reranker reranker,
+                              @NonNull final List<Evaluator> evaluators,
+                              @NonNull final Retrier retrier,
+                              @NonNull final ChatModelRequest generateAnswerRequest,
+                              @NonNull final ChatModelDelegator<Map<String, ?>> chatModelDelegator,
                               final int maxRetryCount) {
         this.preprocessor       = preprocessor;
         this.orchestrator       = orchestrator;
@@ -81,51 +74,36 @@ public class DefaultRAGSolution {
         this.reranker           = reranker;
         this.evaluators = evaluators;
         this.retrier            = retrier;
-        this.generateRequest    = generateRequest;
+        this.generateAnswerRequest = generateAnswerRequest;
         this.chatModelDelegator = chatModelDelegator;
         this.maxRetryCount      = maxRetryCount;
     }
 
     public String answer(final String rawQuery) {
         boolean retry = true;
-        Map<String, ?> context = null;
         int c = 0;
         while(retry && c < maxRetryCount) {
-            context = this.preprocessor.next(rawQuery);
-            List<String> docs = this.orchestrator.retrieve(context);
-            docs = this.aligner.align(docs);
-            docs = this.reranker.rerank(docs);
-            ((Map)context).put("Docs", docs);
-            var request = buildRequestWithContext(context, generateRequest);
-            var answer = this.chatModelDelegator.delegate(request, new TypeReference<String>() {});
-            ((Map) context).put("Answer", answer);
-            for(var scorer : this.evaluators) {
-                scorer.evaluate(context);
+            var context = new Context();
+            var query = new Query();
+            query.setQuery(rawQuery);
+            context.setQuery(query);
+            context = this.preprocessor.next(context);
+            var docs = this.orchestrator.retrieve(context);
+            for(var pair : docs) {
+                var list = pair.getValue();
+                var aligned  = this.aligner.align(list, 10000, 10);
+                var reranked = this.reranker.rerank(aligned, context);
+                pair.setValue(reranked);
             }
-            retry = retrier.retrie(context);
+            context.setReferences(docs);
+            var request = generateAnswerRequest.withContext(context);
+            var results = this.chatModelDelegator.delegate(request, new TypeReference<Map<String, ?>>() {});
+            for(var scorer : this.evaluators) {
+                scorer.evaluate(results);
+            }
+            retry = retrier.retrie(results);
             c++;
         }
-        return (String) context.get("Answer");
-    }
-
-    public ChatModelRequest buildRequestWithContext(final Map<String, ?> context, final ChatModelRequest template) {
-        var rawQuery = (String) context.get("RawQuery");
-        var request = template.withRawQuery(rawQuery);
-        var entities = context.entrySet();
-        for(var entity : entities) {
-            var key  = entity.getKey();
-            if(key.equals("NERs")) {
-                request.setNERs((Map<String, String>) entity.getValue());
-            } else if(key.equals("RewritedQuery")) {
-                request.setRawQuery(entity.getKey());
-            } else if(key.equals("TOPICs")) {
-                request.setTopics((List<String>) entity.getValue());
-            } else if(key.equals("RewritedMultiQueries")) {
-                request.setRewritedMultiQueries((List<String>) entity.getValue());
-            } else if(key.equals("Docs")) {
-                request.setDocuments((List<String>) entity.getValue());
-            }
-        }
-        return request;
+        return retrier.best();
     }
 }

@@ -24,65 +24,110 @@
 
 package com.github.wordsless.galaxy.core.preprocessor;
 
+import com.github.wordsless.galaxy.core.entity.Context;
+import com.github.wordsless.galaxy.core.entity.Query;
 import com.github.wordsless.galaxy.core.exception.NamedEntityRecognizeException;
-
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
 import com.hankcs.hanlp.seg.common.Term;
 import com.hankcs.hanlp.tokenizer.StandardTokenizer;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 /**
  * 基于HanLP的本地命名实体识别器
  * 替代原本地模型方案，直接通过HanLP完成NER，轻量且无重试/Schema依赖
+ * 核心能力：提取查询文本中的人名(PER)、地名(LOC)、机构名(ORG)等实体，封装为Query.Entity结构
  */
 public class NamedEntityRecognizerWithLocal implements NamedEntityRecognizer {
 
-    // HanLP 支持的实体类型（可根据业务扩展）
-    private static final List<String> SUPPORTED_ENTITY_TYPES = List.of(
-            "nr", // 人名
-            "ns", // 地名
-            "nt", // 机构名
-            "nz", // 专名
-            "nw", // 作品名
-            "ntc" // 公司名
+    // HanLP词性 → 标准实体类型映射（nr=人名/PER，ns=地名/LOC，nt=机构名/ORG）
+    private static final Map<String, String> ENTITY_TYPE_MAPPING = Map.of(
+            "nr", "PER",  // 人名 → 标准PER类型
+            "ns", "LOC",  // 地名 → 标准LOC类型
+            "nt", "ORG",  // 机构名 → 标准ORG类型
+            "nz", "ORG",  // 专名 → 归为ORG（可根据业务调整）
+            "nw", "ORG",  // 作品名 → 归为ORG（可根据业务调整）
+            "ntc", "ORG"  // 公司名 → 归为ORG
     );
 
     /**
-     * 核心NER方法：基于HanLP提取实体，封装为StructuredQuery
-     * @return 结构化查询对象（核心填充nerEntities，其他字段默认值）
+     * 核心NER方法：基于HanLP提取实体，填充到Context的RawQuery中
+     * @param context 上下文对象，包含原始查询和待填充的NER结果
      * @throws IllegalArgumentException 入参为空/空白时抛出
      * @throws NamedEntityRecognizeException HanLP执行失败时抛出
      */
     @Override
-    public void process(Map<String, ?> context) {
-        String rawQuery = (String) context.get("RawQuery");
+    public void process(Context context) {
         // 1. 入参校验
-        if (rawQuery == null || rawQuery.isBlank()) {
+        if (context == null) {
+            throw new IllegalArgumentException("Context上下文不能为空");
+        }
+        Query rawQuery = context.getQuery();
+        if (rawQuery == null || rawQuery.getQuery() == null || rawQuery.getQuery().isBlank()) {
             throw new IllegalArgumentException("原始查询字符串不能为空或空白");
         }
+        String queryText = rawQuery.getQuery().trim();
 
         try {
-            // 3. HanLP 分词 + 实体识别
-            List<Term> terms = StandardTokenizer.segment(rawQuery);
+            // 2. HanLP 分词 + 实体识别（带位置信息）
+            List<Term> terms = StandardTokenizer.segment(queryText);
 
-            // 4. 过滤出指定类型的实体
-            Map<String, String> termMap = terms.stream()
-                    .collect(Collectors.toMap(
-                            term -> term.word,                // key：词语
-                            term -> term.nature.toString(),   // value：词性
-                            // 解决重复词冲突（保留第一个）
-                            (oldVal, newVal) -> oldVal
-                    ));
-            ((Map) context).put("NERs", termMap);
+            // 3. 解析实体：过滤支持的类型，封装为Query.Entity
+            List<Query.Entity> nerEntities = parseEntities(terms, queryText);
+
+            // 4. 将识别结果填充回RawQuery
+            rawQuery.setNERs(nerEntities);
+
+        } catch (IllegalArgumentException e) {
+            // 入参相关异常直接抛出
+            throw e;
         } catch (Exception e) {
             // 封装HanLP执行异常，保留上下文
             throw new NamedEntityRecognizeException(
-                    "HanLP执行命名实体识别失败，原始查询：" + rawQuery,
+                    "HanLP执行命名实体识别失败，原始查询：" + rawQuery.getQuery(),
                     e, 0, "HanLP_NER_PROCESS" // 无重试，prompt标记为固定值
             );
         }
     }
 
+    /**
+     * 解析HanLP分词结果，提取实体并封装为Query.Entity
+     * @param terms HanLP分词结果
+     * @param queryText 原始查询文本
+     * @return 标准化的实体列表
+     */
+    private List<Query.Entity> parseEntities(List<Term> terms, String queryText) {
+        List<Query.Entity> entities = new ArrayList<>();
+        int currentIndex = 0; // 记录当前字符的位置偏移
+
+        for (Term term : terms) {
+            String word = term.word;
+            String nature = term.nature.toString();
+
+            // 跳过非支持的实体类型
+            if (!ENTITY_TYPE_MAPPING.containsKey(nature)) {
+                currentIndex += word.length();
+                continue;
+            }
+
+            // 计算实体在原始文本中的起止下标
+            int start = currentIndex;
+            int end = currentIndex + word.length() - 1; // 闭区间[start, end]
+
+            // 封装实体对象
+            Query.Entity entity = new Query.Entity();
+            entity.setText(word);
+            entity.setType(ENTITY_TYPE_MAPPING.get(nature));
+            entity.setStart(start);
+            entity.setEnd(end);
+
+            entities.add(entity);
+
+            // 更新位置偏移
+            currentIndex += word.length();
+        }
+
+        return entities;
+    }
 }

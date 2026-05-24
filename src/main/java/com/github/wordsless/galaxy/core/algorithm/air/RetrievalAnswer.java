@@ -26,9 +26,8 @@ package com.github.wordsless.galaxy.core.algorithm.air;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.github.wordsless.galaxy.core.ChatModelDelegator;
-import com.github.wordsless.galaxy.core.ChatModelRequest;
+import com.github.wordsless.galaxy.core.entity.ChatModelRequest;
 import com.github.wordsless.galaxy.core.Retriever;
-import com.github.wordsless.galaxy.core.algorithm.mcts.MCTSNode;
 import org.jspecify.annotations.NonNull;
 
 public class RetrievalAnswer extends AbstractAction<ReasoningState<String>> {

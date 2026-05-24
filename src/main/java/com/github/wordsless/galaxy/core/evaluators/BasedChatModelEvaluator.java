@@ -26,8 +26,9 @@ package com.github.wordsless.galaxy.core.evaluators;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.github.wordsless.galaxy.core.ChatModelDelegator;
-import com.github.wordsless.galaxy.core.ChatModelRequest;
+import com.github.wordsless.galaxy.core.entity.ChatModelRequest;
 import com.github.wordsless.galaxy.core.Evaluator;
+import com.github.wordsless.galaxy.core.entity.EntityPair;
 import lombok.NonNull;
 import org.springframework.stereotype.Component;
 
@@ -75,16 +76,12 @@ public class BasedChatModelEvaluator implements Evaluator {
      * Extracts raw query, documents, and answer from context, populates the template,
      * then sends the request to get metric scores.
      *
-     * @param context Input data map containing:
-     *                - "RawQuery": Original user query (String)
-     *                - "Docs": List of reference documents (List<String>)
-     *                - "Answer": Generated answer to evaluate (String)
-     * @return Map of metric names (e.g., "usefulness") to their double scores (0-1 range)
-     * @throws ClassCastException If context values are not of the expected type
+     * @param answer@return Map of metric names (e.g., "usefulness") to their double scores (0-1 range)
+     * @throws ClassCastException   If context values are not of the expected type
      * @throws NullPointerException If required context keys are missing
      */
     @Override
-    public Map<String, Double> evaluate(Map<String, ?> context) {
+    public Map<String, Double> evaluate(EntityPair<String, Double> answer) {
         // Extract core data from evaluation context
         var rawQuery = (String) context.get("RawQuery");
         var docs = (List<String>) context.get("Docs");

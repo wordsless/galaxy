@@ -27,7 +27,9 @@ package com.github.wordsless.galaxy.core;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.wordsless.galaxy.core.entity.ChatModelRequest;
 import dev.langchain4j.model.chat.ChatModel;
+import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.github.wordsless.galaxy.core.exception.ChatModelInvokerException;
@@ -75,7 +77,7 @@ public class ChatModelDelegator<T> {
         // Loop retry (non-recursive to avoid stack overflow)
         for (int retryCount = 0; retryCount < maxRetryCount; retryCount++) {
             try {
-                var prompt = toString(request);
+                var prompt = buildPromptWithRequest(request);
                 // 2. Call LLM
                 logger.info("Start invoking LLM, current retry count: {}", retryCount);
                 String response = chatModel.chat(prompt);
@@ -119,5 +121,103 @@ public class ChatModelDelegator<T> {
     public T delegate(final ChatModelRequest request,
                       final TypeReference<T> typeReference) {
         return this.delegate(3, request, typeReference);
+    }
+
+    public String buildPromptWithRequest(@NonNull final ChatModelRequest request) {
+        var sb = new StringBuilder();
+        sb.append("# Role:\n%s\n\n".formatted(request.getRole()));
+        sb.append("# Task:\n%s\n\n".formatted(request.getTask()));
+        sb.append("# Raw Query:\n%s\n\n".formatted(request.getRawQuery().toString()));
+        sb.append("# Rules:\n");
+        request.getRules().forEach(rule -> {
+            sb.append("- %s\n".formatted(rule));
+        });
+        sb.append("\n");
+        sb.append("# Constraints:\n");
+        request.getConstraints().forEach(constraint -> {
+            sb.append("- %s\n".formatted(constraint));
+        });
+        sb.append("\n");
+        sb.append("# Output Language:\n%s\n\n".formatted(request.getOutputLanguage()));
+
+        var context = request.getContext();
+        sb.append("# Context:\n");
+        context.getConversations().forEach(conversation -> {
+            sb.append("- %s\n".formatted(conversation.toString()));
+        });
+        sb.append("\n");
+        sb.append("# References:\n");
+        context.getReferences().forEach(item -> {
+            sb.append("%s\n".formatted(item.getEntity().toString()));
+            item.getValue().forEach(value -> {
+                sb.append("- %s\n".formatted(value.toString()));
+            });
+        });
+        sb.append("\n");
+        sb.append("# Generation Parameters:\n");
+
+        var temperature = request.getTemperature();
+        if(temperature != null) {
+            sb.append("temperature = %f\n".formatted(temperature));
+        }
+
+        var topP = request.getTopP();
+        if(topP != null) {
+            sb.append("top_p = %f\n".formatted(topP));
+        }
+
+        var maxTokens = request.getMaxTokens();
+        if(maxTokens != null) {
+            sb.append("max_tokens = %d\n".formatted(maxTokens));
+        }
+
+        var presencePenalty = request.getPresencePenalty();
+        if(presencePenalty != null) {
+            sb.append("presence_penalty = %f\n".formatted(presencePenalty));
+        }
+
+        var frequencyPenalty = request.getFrequencyPenalty();
+        if(frequencyPenalty != null) {
+            sb.append("frequency_penalty = %f\n".formatted(frequencyPenalty));
+        }
+
+        var n = request.getN();
+        if(n != null) {
+            sb.append("n = %d".formatted(n));
+        }
+
+        var stream = request.getStream();
+        if(stream != null) {
+            sb.append("stream = %b\n".formatted(stream));
+        }
+
+        var logprobs = request.getLogprobs();
+        if(logprobs != null) {
+            sb.append("logprobs = %b\n".formatted(logprobs));
+        }
+
+        var echo = request.getEcho();
+        if(echo != null) {
+            sb.append("echo = %b\n".formatted(echo));
+        }
+
+        var seed = request.getSeed();
+        if(seed != null) {
+            sb.append("seed = %d\n".formatted(seed));
+        }
+
+        var bestOf = request.getBestOf();
+        if(bestOf != null) {
+            sb.append("best_of = %d\n".formatted(bestOf));
+        }
+
+        var logitBias = request.getLogitBias();
+        if(logitBias != null) {
+            for(var p : logitBias.entrySet()) {
+                sb.append("%s = %d\n".formatted(p.getKey(), p.getValue()));
+            }
+        }
+        sb.append("\n");
+        return sb.toString();
     }
 }

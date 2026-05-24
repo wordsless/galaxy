@@ -26,31 +26,31 @@ package com.github.wordsless.galaxy.core.preprocessor;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.github.wordsless.galaxy.core.ChatModelDelegator;
-import com.github.wordsless.galaxy.core.ChatModelRequest;
+import com.github.wordsless.galaxy.core.entity.ChatModelRequest;
+import com.github.wordsless.galaxy.core.entity.Context;
+import com.github.wordsless.galaxy.core.entity.Query;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 import java.util.List;
-import java.util.Map;
 
-public class QueryRewriter implements IQueryFilter {
+@Component
+public class QueryRewriter {
 
-    private final ChatModelDelegator<List<String>> chatModelDelegator;
+    private final ChatModelDelegator<List<Query>> chatModelDelegator;
 
     private final ChatModelRequest queryRewriteRequest;
 
-    public QueryRewriter(final ChatModelDelegator<List<String>> chatModelDelegator,
-                         final NamedEntityRecognizer namedEntityRecognizer,
+    @Autowired
+    public QueryRewriter(final ChatModelDelegator<List<Query>> chatModelDelegator,
                          final ChatModelRequest queryRewriteRequest) {
         this.chatModelDelegator = chatModelDelegator;
         this.queryRewriteRequest = queryRewriteRequest;
     }
 
-    @SuppressWarnings("uncheck")
-    @Override
-    public void process(final Map<String, ?> args) {
-        String rawQuery = (String) args.get("RawQuery");
-        var ners = (Map<String, String>) args.get("NERs");
-        var request = this.queryRewriteRequest.withRawQuery(rawQuery).withNERs(ners);
-        String results = chatModelDelegator.delegate(request, new TypeReference<List<String>>() {}).getFirst();
-        ((Map)args).put("RewritedQuery", results);
+    public List<Query> rewrite(final Context context) {
+        var rawQuery = context.getQuery();
+        var request = this.queryRewriteRequest.withRawQuery(rawQuery);
+        return chatModelDelegator.delegate(request, new TypeReference<List<Query>>() {});
     }
 }

@@ -25,7 +25,6 @@
 package com.github.wordsless.galaxy.core.vectordb;
 
 import com.github.wordsless.galaxy.core.entity.Document;
-import com.github.wordsless.galaxy.core.entity.VectorEntity;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 

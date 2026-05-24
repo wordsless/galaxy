@@ -22,7 +22,22 @@
  * SOFTWARE.
  */
 
-package com.github.wordsless.galaxy.core;
+package com.github.wordsless.galaxy.core.entity;
 
-public abstract class LocalModelAdapter implements ChatModelAdapter {
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.With;
+
+@Data
+@With
+@NoArgsConstructor
+@AllArgsConstructor
+public class EntityPair<K, V> {
+
+    private int sn;
+
+    private K entity;
+
+    private V value;
 }

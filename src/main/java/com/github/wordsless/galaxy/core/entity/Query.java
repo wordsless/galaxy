@@ -27,13 +27,56 @@ package com.github.wordsless.galaxy.core.entity;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import java.util.Map;
+import lombok.With;
+
+import java.util.List;
 
 @Data
+@With
 @NoArgsConstructor
 @AllArgsConstructor
-public class VectorEntity {
-    private Long id;
-    private float[] vector;
-    private Map<String, Object> metadata;
+public class Query {
+
+    @Data
+    @With
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class Entity {
+        // 实体文本
+        String text;
+        // 实体类型 PER/LOC/ORG
+        String type;
+        // 开始下标
+        int start;
+        // 结束下标
+        int end;
+
+        @Override
+        public String toString() {
+            return "{text=%s; type=%s; start=%d; end=%d}".formatted(text, type, start, end);
+        }
+    }
+
+    // if sn is 0, then the query is raw query.
+    private int sn;
+
+    private String query;
+
+    private List<Entity> NERs;
+
+    private List<String> candidateTopics;
+
+    @Override
+    public String toString() {
+        var sb = new StringBuilder();
+        sb.append("%d. %s:\n".formatted(sn, query));
+        sb.append("NERs: [");
+        for(var entity : NERs) {
+            sb.append(entity.toString());
+            sb.append(", ");
+        }
+        sb.deleteCharAt(sb.length() - 1);
+        sb.append("]\n");
+        return sb.toString();
+    }
 }

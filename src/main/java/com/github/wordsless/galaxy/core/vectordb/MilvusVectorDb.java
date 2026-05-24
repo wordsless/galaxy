@@ -25,7 +25,6 @@
 package com.github.wordsless.galaxy.core.vectordb;
 
 import com.github.wordsless.galaxy.core.entity.Document;
-import com.github.wordsless.galaxy.core.entity.VectorEntity;
 import io.milvus.client.MilvusServiceClient;
 import io.milvus.grpc.DataType;
 import io.milvus.grpc.SearchResultData;

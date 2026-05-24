@@ -22,13 +22,27 @@
  * SOFTWARE.
  */
 
-package com.github.wordsless.galaxy.core;
+package com.github.wordsless.galaxy.core.entity;
 
-import com.github.wordsless.galaxy.core.entity.Document;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.With;
 
 import java.util.List;
+import java.util.Map;
 
-public interface ChatModelAdapter<T> {
+@Data
+@With
+@NoArgsConstructor
+@AllArgsConstructor
+public class Context {
 
-    T call(List<Document> docs);
+    private Query query;
+
+    private String answer;
+
+    private List<Conversation> conversations;
+
+    private List<EntityPair<Query, List<Document>>> references;
 }

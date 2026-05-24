@@ -28,5 +28,7 @@ import java.util.Map;
 
 public interface Retrier {
 
+    String best();
+
     boolean retrie(Map<String, ?> context);
 }

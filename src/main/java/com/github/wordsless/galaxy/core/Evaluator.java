@@ -39,9 +39,7 @@ public interface Evaluator {
     /**
      * Evaluates the given context data and returns metric scores.
      *
-     * @param context A map containing input data for evaluation (e.g., raw query, documents, answer)
-     *                Key examples: "RawQuery", "Docs", "Answer"
-     * @return A map of metric names to their corresponding double scores
+     * @param answer@return A map of metric names to their corresponding double scores
      */
-    Map<String, Double> evaluate(Map<String, ?> context);
+    void evaluate(Map<String, ?> answer);
 }

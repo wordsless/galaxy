@@ -25,10 +25,12 @@
 package com.github.wordsless.galaxy.core.preprocessor;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.github.wordsless.galaxy.core.ChatModelRequest;
+import com.github.wordsless.galaxy.core.entity.ChatModelRequest;
 import com.github.wordsless.galaxy.core.ChatModelDelegator;
+import com.github.wordsless.galaxy.core.entity.Context;
+import com.github.wordsless.galaxy.core.entity.Query;
 
-import java.util.Map;
+import java.util.List;
 
 /**
  * 基于远程ChatModel的命名实体识别器
@@ -39,23 +41,23 @@ import java.util.Map;
  */
 public class NamedEntityRecognizerWithChatModel implements NamedEntityRecognizer {
 
-    private final ChatModelDelegator<Map<String, String>> chatModelDelegator;
+    private final ChatModelDelegator<List<Query.Entity>> chatModelDelegator;
 
     private final ChatModelRequest namedEntityRequest;
 
-    public NamedEntityRecognizerWithChatModel(final ChatModelDelegator<Map<String, String>> chatModelDelegator,
+    public NamedEntityRecognizerWithChatModel(final ChatModelDelegator<List<Query.Entity>> chatModelDelegator,
                                               final ChatModelRequest namedEntityRequest) {
         this.chatModelDelegator = chatModelDelegator;
         this.namedEntityRequest = namedEntityRequest;
     }
 
     @Override
-    public void process(Map<String, ?> context) {
-        var rawQuery= (String) context.get("RawQuery");
-        if(rawQuery == null || rawQuery.isEmpty())
+    public void process(final Context context) {
+        var query = context.getQuery();
+        if(query == null)
             throw new NullPointerException("RawQuery is null");
-        var request = namedEntityRequest.withRawQuery(rawQuery);
-        var NERs = chatModelDelegator.delegate(request, new TypeReference<Map<String, String>>() {});
-        ((Map) context).put("NERs", NERs);
+        var request = namedEntityRequest.withRawQuery(query);
+        var NERs = chatModelDelegator.delegate(request, new TypeReference<List<Query.Entity>>() {});
+        query.setNERs(NERs);
     }
 }

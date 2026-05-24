@@ -26,7 +26,7 @@ package com.github.wordsless.galaxy.core.algorithm.air;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.github.wordsless.galaxy.core.ChatModelDelegator;
-import com.github.wordsless.galaxy.core.ChatModelRequest;
+import com.github.wordsless.galaxy.core.entity.ChatModelRequest;
 import org.jspecify.annotations.NonNull;
 
 public class DirectAnswer extends AbstractAction<ReasoningState<String>> {

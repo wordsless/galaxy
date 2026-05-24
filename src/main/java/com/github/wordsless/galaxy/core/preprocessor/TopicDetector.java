@@ -24,33 +24,29 @@
 
 package com.github.wordsless.galaxy.core.preprocessor;
 
-import com.github.wordsless.galaxy.core.utils.MicroServiceCaller;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.github.wordsless.galaxy.core.ChatModelDelegator;
+import com.github.wordsless.galaxy.core.entity.ChatModelRequest;
+import com.github.wordsless.galaxy.core.entity.Context;
 import org.springframework.stereotype.Component;
 
-import java.io.IOException;
-import java.util.Map;
+import java.util.List;
 
 @Component
 public class TopicDetector implements IQueryFilter {
 
-    private MicroServiceCaller topicService;
+    private ChatModelRequest topicModelRequest;
 
-    @Autowired
-    public TopicDetector(MicroServiceCaller topicService) {
-        this.topicService = topicService;
-    }
+    private ChatModelDelegator<List<String>> topicModelDelegator;
 
     @Override
-    public void process(Map<String, ?> context) {
-        String query = (String) context.get("RawQuery");
-        if (query == null || query.isEmpty())
-            throw new IllegalArgumentException("query is null or empty");
-        try {
-            var labels = this.topicService.predictTopics(query);
-            ((Map)context).put("TOPICs", labels);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+    public void process(final Context context) {
+        var query   = context.getQuery();
+        var request = topicModelRequest.withRawQuery(query);
+        var topics  = topicModelDelegator.delegate(request, new TypeReference<List<String>>() {});
+        query.getCandidateTopics().addAll(topics);
+        topics = query.getCandidateTopics();
+        List<String> uniqueList = topics.stream().distinct().toList();
+        query.setCandidateTopics(uniqueList);
     }
 }
