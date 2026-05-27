@@ -24,20 +24,54 @@
 
 package com.github.wordsless.galaxy.core.entity;
 
-import lombok.AllArgsConstructor;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.github.wordsless.galaxy.core.algorithm.air.ReasoningState;
+import com.github.wordsless.galaxy.core.algorithm.mcts.Action;
 import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.With;
+import lombok.NonNull;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Data
-@With
-@NoArgsConstructor
-@AllArgsConstructor
-public class EntityPair<K, V> {
+public class PlanStep {
 
-    private int sn;
+    private Integer SN;
 
-    private K entity;
+    private String content;
 
-    private V value;
+    private Action<ReasoningState<?>> action;
+
+    @JsonProperty("depend_on")
+    private Integer dependOn;
+
+    private List<PlanStep> children;
+
+    private boolean used;
+
+    public PlanStep(@NonNull Integer SN,
+                    @NonNull String content) {
+        this.SN = SN;
+        this.content = content;
+        this.children = new ArrayList<>();
+    }
+
+    public void addChild(PlanStep child) {
+        this.children.add(child);
+    }
+
+    public PlanStep next() {
+        PlanStep next = null;
+        for(var child : children) {
+            if(!child.used)
+                next = child;
+        }
+        return next;
+    }
+
+    @Override
+    public String toString() {
+        return "%d. [%s] %s".formatted(this.SN, this.action.getLabel(), this.content);
+    }
+
 }

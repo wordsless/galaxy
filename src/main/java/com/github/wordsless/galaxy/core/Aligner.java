@@ -27,6 +27,7 @@ package com.github.wordsless.galaxy.core;
 import com.github.wordsless.galaxy.core.entity.Document;
 
 import java.util.List;
+import java.util.Map;
 
 public interface Aligner {
 
@@ -34,6 +35,6 @@ public interface Aligner {
 	 * 
 	 * @param docs candidate document set
 	 */
-	List<Document> align(List<Document> docs, long tokenCountLimit, int iterCount);
+	Map<Document, Map<String, Double>> align(List<Document> docs);
 
 }

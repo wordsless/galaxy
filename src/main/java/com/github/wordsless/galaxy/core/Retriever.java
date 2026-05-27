@@ -24,6 +24,9 @@
 
 package com.github.wordsless.galaxy.core;
 
+import com.github.wordsless.galaxy.core.entity.Document;
+import com.github.wordsless.galaxy.core.entity.Query;
+
 import java.util.List;
 
 public interface Retriever {
@@ -32,6 +35,6 @@ public interface Retriever {
 	 * 
 	 * @param rewritedQuery
 	 */
-	List<String> retrieve(String rewritedQuery);
+	List<Document> retrieve(Query rewritedQuery);
 
 }

@@ -27,6 +27,7 @@ package com.github.wordsless.galaxy.core.config;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.wordsless.galaxy.core.ChatModelDelegator;
+import com.github.wordsless.galaxy.core.algorithm.air.SystemAnalysis;
 import com.github.wordsless.galaxy.core.entity.ChatModelRequest;
 import com.google.common.io.Resources;
 import dev.langchain4j.model.chat.ChatModel;
@@ -120,11 +121,6 @@ public class ChatModelRequestConfig {
         }
     }
 
-    @Bean("chatModelRequestSerializer")
-    public ChatModelRequestSerializer chatModelRequestSerializer() {
-        return new ChatModelRequestSerializer();
-    }
-
     @Bean
     public ChatModel cloudChatModel() {
         return OpenAiChatModel.builder()
@@ -155,9 +151,9 @@ public class ChatModelRequestConfig {
     }
 
     @Bean("systemAnalysisChatModelDelegator")
-    public ChatModelDelegator<SAY>
+    public ChatModelDelegator<SystemAnalysis>
     systemAnalysisChatModelDelegator(ChatModel chatModel, ObjectMapper objectMapper) {
-        return new ChatModelDelegator<SAY>(chatModel,  objectMapper);
+        return new ChatModelDelegator<SystemAnalysis>(chatModel,  objectMapper);
     }
 
     @Bean("queryTransformChatModelDelegator")
@@ -170,47 +166,5 @@ public class ChatModelRequestConfig {
     public ChatModelDelegator<List<String>>
     summaryAnswerChatModelDelegator(ChatModel chatModel, ObjectMapper objectMapper) {
         return new ChatModelDelegator<List<String>>(chatModel,  objectMapper);
-    }
-
-    @Bean
-    public ReasoningTreeNodeSimulator reasoningTreeNodeSimulator(
-            @Qualifier("simulationChatModelDelegator")
-            ChatModelDelegator<List<Double>> simulationDelegator,
-            ChatModelRequest simulationRequest) {
-        return new ReasoningTreeNodeSimulator(simulationDelegator, simulationRequest);
-    }
-
-    @Bean
-    public ReasoningTreeNodeFactory reasoningTreeNodeFactory(@Qualifier("directAnswerResponseChatModelDelegator")
-                                                             final ChatModelDelegator<List<String>> directAnswerDelegator,
-                                                             @Qualifier("retrievalAnswerResponseChatModelDelegator")
-                                                             final ChatModelDelegator<List<String>> retrievalAnswerDelegator,
-                                                             @Qualifier("queryTransformChatModelDelegator")
-                                                             final ChatModelDelegator<List<String>> queryTransformChatModelDelegator,
-                                                             @Qualifier("systemAnalysisChatModelDelegator")
-                                                             final ChatModelDelegator<SAY> systemAnalysisChatModelDelegator,
-                                                             @Qualifier("summaryAnswerChatModelDelegator")
-                                                             final ChatModelDelegator<List<String>> summaryAnswerChatModelDelegator,
-                                                             @Qualifier("expansionRequest4DA")
-                                                             final ChatModelRequest directRequest,
-                                                             @Qualifier("expansionRequest4RA")
-                                                             final ChatModelRequest retrievalRequest,
-                                                             @Qualifier("expansionRequest4QT")
-                                                             final ChatModelRequest queryTransformRequest,
-                                                             @Qualifier("expansionRequest4SAY")
-                                                             final ChatModelRequest systemAnalysisRequest,
-                                                             @Qualifier("expansionRequest4SA")
-                                                             final ChatModelRequest summaryRequest,
-                                                             final ObjectMapper objectMapper) {
-        return new ReasoningTreeNodeFactory(systemAnalysisChatModelDelegator,
-                                            queryTransformChatModelDelegator,
-                                            retrievalAnswerDelegator,
-                                            directAnswerDelegator,
-                                            summaryAnswerChatModelDelegator,
-                                            directRequest,retrievalRequest,
-                                            queryTransformRequest,
-                                            systemAnalysisRequest,
-                                            summaryRequest,
-                                            objectMapper);
     }
 }

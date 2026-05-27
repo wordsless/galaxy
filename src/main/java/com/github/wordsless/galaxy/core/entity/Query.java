@@ -60,7 +60,7 @@ public class Query {
     // if sn is 0, then the query is raw query.
     private int sn;
 
-    private String query;
+    private String text;
 
     private List<Entity> NERs;
 
@@ -69,7 +69,7 @@ public class Query {
     @Override
     public String toString() {
         var sb = new StringBuilder();
-        sb.append("%d. %s:\n".formatted(sn, query));
+        sb.append("%d. %s:\n".formatted(sn, text));
         sb.append("NERs: [");
         for(var entity : NERs) {
             sb.append(entity.toString());

@@ -24,9 +24,11 @@
 
 package com.github.wordsless.galaxy.core.aligner;
 
+import com.github.wordsless.galaxy.core.Scorer;
+
 import java.util.Map;
 
-public class DPAScorer implements CompositeScorer {
+public class DPAScorer implements Scorer {
 
     @Override
     public double score(Map<String, Double> params) {

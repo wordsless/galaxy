@@ -26,7 +26,7 @@ package com.github.wordsless.galaxy.core.algorithm.star;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.github.wordsless.galaxy.core.ChatModelDelegator;
-import com.github.wordsless.galaxy.core.entity.ChatModelRequest;
+import com.github.wordsless.galaxy.core.entity.*;
 import com.github.wordsless.galaxy.core.Retriever;
 import com.github.wordsless.galaxy.core.algorithm.mcts.Action;
 import com.github.wordsless.galaxy.core.algorithm.mcts.MCTSNode;
@@ -38,15 +38,13 @@ public class StarAction implements Action<StarState> {
 
     private Retriever retriever;
 
-    private ChatModelDelegator<List<String>> generateSubqueryDelegator;
+    private ChatModelDelegator<List<Query>> generateSubqueryDelegator;
 
     private ChatModelDelegator<List<String>> generateAnswerDelegator;
 
-    private String rawQuery;
-
     private ChatModelRequest generateSubqueryRequestTemplate;
 
-    private ChatModelRequest generateAnswerRequestTemplate;
+    private ChatModelRequest generateAnswerRequest;
 
     public List<StarState> buildStateList(final MCTSNode<StarState> node) {
         var cur = node;
@@ -75,16 +73,22 @@ public class StarAction implements Action<StarState> {
     }
 
     @Override
-    public MCTSNode<StarState> transit(MCTSNode<StarState> node) {
-        var context = node.getState().getContext();
-        if(context == null)
-            context = buildContext(node);
-        var request = generateSubqueryRequestTemplate.withRawQuery(rawQuery)
+    public MCTSNode<StarState> transit(MCTSNode<StarState> node, final Context context) {
+        var request = generateSubqueryRequestTemplate.withRawQuery(context.getQuery())
                               .withContext(context);
-        var subquery = generateSubqueryDelegator.delegate(request, new TypeReference<List<String>>(){}).getFirst();
+        var subquery = generateSubqueryDelegator.delegate(request, new TypeReference<List<Query>>(){}).getFirst();
         var docs = retriever.retrieve(subquery);
 
-        var state = new StarState(subquery);
-        return new MCTSNode<>(node, );
+        var pair = new EntityWithScore<Query, List<Document>>();
+        pair.setEntity(subquery);
+        pair.setValue(docs);
+
+        context.getReferences().add(pair);
+
+        request = this.generateAnswerRequest.withContext(context);
+        var answer = this.generateAnswerDelegator.delegate(request, new TypeReference<List<String>>() {}).getFirst();
+
+        var state = new StarState(context.getQuery().getText(), answer, false);
+        return new MCTSNode<>(node, state);
     }
 }

@@ -24,6 +24,7 @@
 
 package com.github.wordsless.galaxy.core.response;
 
+import com.github.wordsless.galaxy.core.entity.PlanStep;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

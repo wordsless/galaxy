@@ -151,6 +151,26 @@
             <version>7.0.7</version> <!-- 稳定版，可根据项目修改 -->
         </dependency>
 
+        <!-- Spring AI 核心（无Boot） -->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-core</artifactId>
+            <version>1.0.0-M6</version>
+        </dependency>
+
+        <!-- Spring AI Milvus 向量存储 -->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-milvus-store</artifactId>
+            <version>2.0.0-M7</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-starter-model-openai</artifactId>
+            <version>2.0.0-M7</version>
+        </dependency>
+
         <!-- GUAVA -->
         <dependency>
             <groupId>com.google.guava</groupId>
@@ -184,5 +204,6 @@
             <artifactId>tokenizers</artifactId>
             <version>0.36.0</version>
         </dependency>
+
     </dependencies>
 </project>

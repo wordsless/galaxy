@@ -47,7 +47,7 @@ public class MultiQueryRewriter implements IQueryFilter {
     @Override
     public void process(Context context) {
         var rawQuery = context.getQuery();
-        var request = multiRewriteRequest.withRawQuery(rawQuery.getQuery()).withNERs(ners);
+        var request = multiRewriteRequest.withRawQuery(rawQuery.getText()).withNERs(ners);
         var results = this.chatModelDelegator.delegate(request, new TypeReference<List<String>>() {});
         ((Map) context).put("RewritedMultiQueries", results);
     }

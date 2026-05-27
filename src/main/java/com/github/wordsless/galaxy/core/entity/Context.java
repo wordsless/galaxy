@@ -44,5 +44,5 @@ public class Context {
 
     private List<Conversation> conversations;
 
-    private List<EntityPair<Query, List<Document>>> references;
+    private List<Map<Query, List<Document>>> references;
 }

@@ -26,6 +26,7 @@ package com.github.wordsless.galaxy.core.algorithm.air;
 
 import com.github.wordsless.galaxy.core.algorithm.mcts.MCTSEngine;
 import com.github.wordsless.galaxy.core.algorithm.mcts.MCTSNode;
+import com.github.wordsless.galaxy.core.entity.Context;
 import org.jspecify.annotations.NonNull;
 import java.util.ArrayList;
 import java.util.List;
@@ -36,14 +37,18 @@ public class ReasonEngine extends MCTSEngine<ReasoningState<?>> {
     private final ThreadLocalRandom random = ThreadLocalRandom.current();
     private static final int MAX_ROLLOUT_DEPTH = 10;
 
+    private final Context context;
+
     // 构造方法 1
-    public ReasonEngine(int maxIterCount, int sampling) {
+    public ReasonEngine(int maxIterCount, int sampling, final Context context) {
         super(maxIterCount, sampling);
+        this.context = context;
     }
 
     // 构造方法 2
-    public ReasonEngine(Accumulator accumulator, int maxIterCount, int sampling) {
+    public ReasonEngine(Accumulator accumulator, int maxIterCount, int sampling, final Context context) {
         super(accumulator, maxIterCount, sampling);
+        this.context = context;
     }
 
     // ==============================
@@ -64,7 +69,7 @@ public class ReasonEngine extends MCTSEngine<ReasoningState<?>> {
             return children;
         var action = node.nextAction(ThreadLocalRandom.current(), false);
         for(int i = 0; i < sampling; ++i) {
-            var child = action.transit(node);
+            var child = action.transit(node, this.context);
             children.add(child);
         }
         return children;

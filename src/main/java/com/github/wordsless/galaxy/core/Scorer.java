@@ -22,9 +22,11 @@
  * SOFTWARE.
  */
 
-package com.github.wordsless.galaxy.core.vectordb;
+package com.github.wordsless.galaxy.core;
 
-public interface DocsEngine {
+import java.util.Map;
 
-    String getDocumentById(final long id);
+public interface Scorer {
+
+    double score(Map<String, Double> scores);
 }

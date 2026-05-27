@@ -1,266 +1,157 @@
-/*
- * MIT License
- *
- * Copyright (c) ${YEAR} Qiang Li (李强)
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
- */
-
 package com.github.wordsless.galaxy.core.aligner;
 
 import com.github.wordsless.galaxy.core.Aligner;
+import com.github.wordsless.galaxy.core.Scorer;
 import com.github.wordsless.galaxy.core.entity.Document;
+import com.github.wordsless.galaxy.core.utils.MonteCarloSampler;
+import org.jspecify.annotations.NonNull;
+import org.springframework.util.CollectionUtils;
 
 import java.util.*;
-import java.util.concurrent.ThreadLocalRandom;
-import java.util.stream.Collectors;
 
 /**
- * 默认对齐器实现，基于蒙特卡罗采样和多轮评分优化文档对齐
+ * 检索后增强 - 文档对齐处理器
+ * 核心职责：多轮迭代对齐 + 智能采样 + 多维度评分 + 低质过滤，输出高质量文档集
+ * 设计定位：RAG 检索后增强核心组件（对齐→重排→过滤）
  */
-public class DefaultAligner implements Aligner {
+public class DefaultAligner {
 
-    // 线程安全的随机数生成器
-    private final ThreadLocalRandom random = ThreadLocalRandom.current();
-    // 批量对齐服务（需外部注入）
-    private BatchAlignService service;
-    // 复合评分器（需外部注入）
-    private CompositeScorer scorer;
+    private final MonteCarloSampler<Document> sampler;
+    private final Aligner aligner;
+    private final List<Scorer> scorers;
 
-    // 默认蒙特卡罗迭代次数
-    private static final int DEFAULT_MONTE_CARLO_ITERATIONS = 1000;
-
-    public DefaultAligner(BatchAlignService service, CompositeScorer scorer) {
-        this.service = service;
-        this.scorer = scorer;
+    public DefaultAligner(@NonNull final Aligner aligner,
+                          final MonteCarloSampler<Document> sampler,
+                          final List<Scorer> scorers) {
+        this.sampler = sampler;
+        this.aligner = aligner;
+        this.scorers = CollectionUtils.isEmpty(scorers) ? Collections.emptyList() : scorers;
     }
 
     /**
-     * 蒙特卡罗采样：从候选文档中采样，满足token总数不超过上限
-     * 优化点：
-     * 1. 提前过滤无效文档，减少循环次数
-     * 2. 增加最优解缓存，提前终止无效迭代
-     * 3. 优化随机洗牌逻辑，提升随机性
-     *
-     * @param docs            候选文档集合（不可为null）
-     * @param tokenCountLimit token总数上限（非负）
-     * @return 采样后的文档列表（token总数≤tokenCountLimit），永远返回非null列表
+     * 文档对齐主流程
+     * @param docs 原始检索文档
+     * @param tokenCountLimit 单轮token上限
+     * @param iterCount 迭代次数
+     * @param threshold 分数过滤阈值
+     * @return 最终高质量文档
      */
-    public List<Document> sampling(final List<Document> docs, long tokenCountLimit) {
-        // 边界条件处理：空输入或非法上限直接返回空列表
-        if (docs == null || docs.isEmpty() || tokenCountLimit <= 0) {
+    public List<Document> align(List<Document> docs, long tokenCountLimit, int iterCount, double threshold) {
+        // 1. 入参基础校验
+        if (CollectionUtils.isEmpty(docs)) {
             return Collections.emptyList();
         }
-
-        // 步骤1：预处理 - 过滤无效文档（tokenCount为null/负数/超过上限）
-        List<Document> validDocs = docs.stream()
-                .filter(Objects::nonNull) // 过滤null文档
-                .filter(doc -> doc.getTokenCount() != null && doc.getTokenCount() > 0) // 过滤tokenCount无效的文档
-                .filter(doc -> doc.getTokenCount() <= tokenCountLimit) // 过滤超过token上限的单篇文档
-                .collect(Collectors.toList());
-
-        // 无有效文档时返回空列表
-        if (validDocs.isEmpty()) {
-            return Collections.emptyList();
+        if (iterCount <= 0 || tokenCountLimit <= 0) {
+            return docs;
         }
 
-        // 蒙特卡罗核心：多次随机采样，找到最接近上限的组合
-        long bestTotalToken = 0;
-        List<Document> bestSample = new ArrayList<>();
-        int monteCarloIterations = DEFAULT_MONTE_CARLO_ITERATIONS;
+        // 文档索引：保证迭代过程中文档可替换、可更新
+        Map<Long, Document> docIndex = new HashMap<>(docs.size());
+        docs.forEach(doc -> docIndex.put(doc.getId(), doc));
 
-        for (int i = 0; i < monteCarloIterations; i++) {
-            List<Document> currentSample = new ArrayList<>();
-            long currentTotalToken = 0;
-
-            // 随机打乱文档顺序（模拟随机采样）
-            List<Document> shuffledDocs = new ArrayList<>(validDocs);
-            shuffleList(shuffledDocs);
-
-            // 累加文档，直到接近token上限
-            for (Document doc : shuffledDocs) {
-                long docToken = doc.getTokenCount();
-                if (currentTotalToken + docToken <= tokenCountLimit) {
-                    currentSample.add(doc);
-                    currentTotalToken += docToken;
-                }
-
-                // 达到上限时提前终止当前迭代
-                if (currentTotalToken == tokenCountLimit) {
-                    break;
-                }
-            }
-
-            // 更新最优采样结果
-            if (currentTotalToken > bestTotalToken) {
-                bestTotalToken = currentTotalToken;
-                bestSample = new ArrayList<>(currentSample);
-
-                // 提前终止所有迭代：已找到完美匹配上限的组合
-                if (bestTotalToken == tokenCountLimit) {
-                    break;
-                }
-            }
-        }
-
-        return bestSample;
-    }
-
-    /**
-     * 自定义列表洗牌方法（线程安全，避免依赖Collections.shuffle）
-     *
-     * @param list 待洗牌的列表（不可为null）
-     */
-    private void shuffleList(List<Document> list) {
-        if (list == null || list.size() <= 1) {
-            return;
-        }
-
-        for (int i = list.size() - 1; i > 0; i--) {
-            int j = random.nextInt(i + 1);
-            // 交换元素
-            Document temp = list.get(i);
-            list.set(i, list.get(j));
-            list.set(j, temp);
-        }
-    }
-
-    /**
-     * 计算文档多轮评分的平均值
-     * 修复点：原逻辑错误地使用values.size()作为循环次数，改为使用scores.size()
-     *
-     * @param doc 待计算的文档（不可为null）
-     * @return 各维度的平均评分，永远返回非null的Map
-     */
-    private Map<String, Double> calculateAverage(Document doc) {
-        Map<String, Double> avgs = new HashMap<>();
-        if (doc == null || doc.getMultiTurnValues() == null || doc.getMultiTurnValues().isEmpty()) {
-            return avgs;
-        }
-
-        Map<String, List<Double>> multiTurnValues = doc.getMultiTurnValues();
-        for (Map.Entry<String, List<Double>> entry : multiTurnValues.entrySet()) {
-            String key = entry.getKey();
-            List<Double> scores = entry.getValue();
-
-            if (scores == null || scores.isEmpty()) {
-                avgs.put(key, 0.0);
-                continue;
-            }
-
-            // 计算有效分数的平均值
-            double sum = scores.stream()
-                    .filter(Objects::nonNull) // 过滤null分数
-                    .mapToDouble(Double::doubleValue)
-                    .sum();
-            avgs.put(key, sum / scores.size());
-        }
-
-        return avgs;
-    }
-
-    /**
-     * 核心对齐方法：多轮蒙特卡罗采样 + 服务调用 + 评分计算 + 排序
-     * 优化点：
-     * 1. 增加参数校验
-     * 2. 修复TreeSet初始化的潜在问题
-     * 3. 优化循环逻辑，减少空指针风险
-     * 4. 增加异常防护（可选，根据业务需求）
-     *
-     * @param docs            候选文档列表（不可为null）
-     * @param tokenCountLimit token总数上限（非负）
-     * @param iterCount       迭代次数（正整数）
-     * @return 按评分排序后的文档列表，永远返回非null列表
-     */
-    @Override
-    public List<Document> align(final List<Document> docs, final long tokenCountLimit, final int iterCount) {
-        // 参数校验
-        if (docs == null || docs.isEmpty()) {
-            return Collections.emptyList();
-        }
-        if (tokenCountLimit <= 0 || iterCount <= 0) {
-            return new ArrayList<>(docs); // 返回原列表的拷贝
-        }
-        if (service == null) {
-            throw new IllegalStateException("BatchAlignService未初始化");
-        }
-        if (scorer == null) {
-            throw new IllegalStateException("CompositeScorer未初始化");
-        }
-
-        // 步骤1：构建候选文档索引（需Document实现Comparable接口）
-        TreeSet<Document> index = new TreeSet<>(docs.stream()
-                .filter(Objects::nonNull)
-                .collect(Collectors.toList()));
-
-        // 步骤2：多轮蒙特卡罗采样与对齐
+        // 2. 多轮迭代对齐 + 分数收集
+        Map<Long, Map<String, List<Double>>> multiRoundScores = new HashMap<>();
         int currentIter = 0;
+
         while (currentIter < iterCount) {
-            try {
-                // 蒙特卡罗采样
-                List<Document> sampled = sampling(docs, tokenCountLimit);
-                if (sampled.isEmpty()) {
-                    currentIter++;
-                    continue;
+            // 采样：控制单次处理长度，防止上下文溢出
+            // 调整：使用新的Sampler接口，tokenCounter返回Long
+            List<Document> subset = null;
+            if(sampler == null)
+                subset = docs;
+            else
+                sampler.sample(new ArrayList<>(docIndex.values()),
+                                               tokenCountLimit,
+                                               Document::getTokenCount);
+
+            if (CollectionUtils.isEmpty(subset)) {
+                break;
+            }
+
+            // 对齐：核心优化逻辑（内容修正/增强/结构化）
+            Map<Document, Map<String, Double>> alignedResult = aligner.align(subset);
+
+            // 同步更新文档 + 收集每一轮分数
+            for (Map.Entry<Document, Map<String, Double>> entry : alignedResult.entrySet()) {
+                Document alignedDoc = entry.getKey();
+                Map<String, Double> scoreItem = entry.getValue();
+
+                // 更新文档索引
+                if (alignedDoc != null) {
+                    docIndex.put(alignedDoc.getId(), alignedDoc);
                 }
 
-                // 调用微服务进行文档对齐
-                List<Document> aligned = service.call(sampled);
-                if (aligned == null || aligned.isEmpty()) {
-                    currentIter++;
-                    continue;
-                }
+                // 累计多轮分数
+                Long docId = alignedDoc.getId();
+                for (Map.Entry<String, Double> scoreEntry : scoreItem.entrySet()) {
+                    String label = scoreEntry.getKey();
+                    Double score = scoreEntry.getValue();
 
-                // 更新文档评分
-                for (Document item : aligned) {
-                    if (item == null) {
-                        continue;
-                    }
-                    Document doc = index.ceiling(item);
-                    if (doc != null) {
-                        doc.setMultiTurnValues(item.getMultiTurnValues());
-                    }
+                    multiRoundScores
+                            .computeIfAbsent(docId, k -> new HashMap<>())
+                            .computeIfAbsent(label, k -> new ArrayList<>())
+                            .add(score);
                 }
-            } catch (Exception e) {
-                // 异常处理：记录日志（建议添加日志框架），继续下一轮迭代
-                // log.error("第{}轮对齐失败", currentIter, e);
-                currentIter++;
-                continue;
             }
             currentIter++;
         }
 
-        // 步骤3：计算最终评分
-        for (Document doc : docs) {
-            if (doc == null) {
-                continue;
-            }
-            Map<String, Double> parameters = calculateAverage(doc);
-            doc.setScore(scorer.score(parameters));
+        // 3. 计算平均分
+        Map<Long, Map<String, Double>> avgScores = calculateAverageScores(multiRoundScores);
+
+        // 4. 多评分器综合打分 + 阈值过滤
+        filterLowQualityDocs(docIndex, avgScores, threshold);
+
+        // 输出结果
+        return new ArrayList<>(docIndex.values());
+    }
+
+    /**
+     * 计算多轮迭代后的平均分
+     */
+    private Map<Long, Map<String, Double>> calculateAverageScores(
+            Map<Long, Map<String, List<Double>>> multiRoundScores) {
+        Map<Long, Map<String, Double>> avgScores = new HashMap<>();
+
+        multiRoundScores.forEach((docId, labelScores) -> {
+            Map<String, Double> avgItem = new HashMap<>();
+            labelScores.forEach((label, scores) -> {
+                double average = scores.stream()
+                        .filter(Objects::nonNull)
+                        .mapToDouble(Double::doubleValue)
+                        .average()
+                        .orElse(0.0d);
+                avgItem.put(label, average);
+            });
+            avgScores.put(docId, avgItem);
+        });
+        return avgScores;
+    }
+
+    /**
+     * 多评分器过滤：【任意一个 scorer 低于阈值 → 标记删除】
+     */
+    private void filterLowQualityDocs(
+            Map<Long, Document> docIndex,
+            Map<Long, Map<String, Double>> avgScores,
+            double threshold) {
+        if (CollectionUtils.isEmpty(scorers)) {
+            return;
         }
 
-        // 步骤4：按评分排序（需Document实现compareTo方法）
-        List<Document> result = new ArrayList<>(docs.stream()
-                .filter(Objects::nonNull)
-                .collect(Collectors.toList()));
-        result.sort(Document::compareTo);
+        Set<Long> needRemoveDocIds = new HashSet<>();
 
-        return result;
+        avgScores.forEach((docId, itemizedScores) -> {
+            boolean lowQuality = scorers.stream()
+                    .filter(Objects::nonNull)
+                    .anyMatch(scorer -> scorer.score(itemizedScores) < threshold);
+
+            if (lowQuality) {
+                needRemoveDocIds.add(docId);
+            }
+        });
+
+        // 批量移除低质文档
+        needRemoveDocIds.forEach(docIndex::remove);
     }
 }

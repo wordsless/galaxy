@@ -59,12 +59,12 @@ public class DefaultRAGSolution {
     @Value("max-retry-count")
     private final int maxRetryCount;
 
-    public DefaultRAGSolution(@NonNull final Preprocessor preprocessor,
+    public DefaultRAGSolution(final Preprocessor preprocessor,
                               @NonNull final Orchestrator orchestrator,
-                              @NonNull final Aligner aligner,
-                              @NonNull final Reranker reranker,
-                              @NonNull final List<Evaluator> evaluators,
-                              @NonNull final Retrier retrier,
+                              final Aligner aligner,
+                              final Reranker reranker,
+                              final List<Evaluator> evaluators,
+                              final Retrier retrier,
                               @NonNull final ChatModelRequest generateAnswerRequest,
                               @NonNull final ChatModelDelegator<Map<String, ?>> chatModelDelegator,
                               final int maxRetryCount) {
@@ -72,7 +72,7 @@ public class DefaultRAGSolution {
         this.orchestrator       = orchestrator;
         this.aligner            = aligner;
         this.reranker           = reranker;
-        this.evaluators = evaluators;
+        this.evaluators         = evaluators;
         this.retrier            = retrier;
         this.generateAnswerRequest = generateAnswerRequest;
         this.chatModelDelegator = chatModelDelegator;
@@ -85,23 +85,42 @@ public class DefaultRAGSolution {
         while(retry && c < maxRetryCount) {
             var context = new Context();
             var query = new Query();
-            query.setQuery(rawQuery);
+            query.setText(rawQuery);
             context.setQuery(query);
-            context = this.preprocessor.next(context);
+            if(this.preprocessor != null)
+                context = this.preprocessor.next(context);
             var docs = this.orchestrator.retrieve(context);
-            for(var pair : docs) {
-                var list = pair.getValue();
-                var aligned  = this.aligner.align(list, 10000, 10);
-                var reranked = this.reranker.rerank(aligned, context);
-                pair.setValue(reranked);
+            if(this.aligner != null && this.reranker != null) {
+                for(var pair : docs) {
+                    var list = pair.getValue();
+                    var aligned  = this.aligner.align(list, 10000, 10);
+                    var reranked = this.reranker.rerank(aligned, context);
+                    pair.setValue(reranked);
+                }
+            } else if(this.aligner == null && this.reranker != null) {
+                for(var pair : docs) {
+                    var list = pair.getValue();
+                    var reranked = this.reranker.rerank(list, context);
+                    pair.setValue(reranked);
+                }
+            } else if(this.aligner != null/*&& this.reranker == null*/) { // when code has run here, means reranker must be true.
+                for(var pair : docs) {
+                    var list = pair.getValue();
+                    var aligned  = this.aligner.align(list, 10000, 10);
+                    pair.setValue(aligned);
+                }
             }
             context.setReferences(docs);
             var request = generateAnswerRequest.withContext(context);
             var results = this.chatModelDelegator.delegate(request, new TypeReference<Map<String, ?>>() {});
-            for(var scorer : this.evaluators) {
-                scorer.evaluate(results);
+            if(this.evaluators != null && !this.evaluators.isEmpty() && this.retrier != null) {
+                for(var evaluator : this.evaluators) {
+                    evaluator.evaluate(results);
+                }
+                retry = retrier.retrie(results);
+            } else {
+                retry = false;
             }
-            retry = retrier.retrie(results);
             c++;
         }
         return retrier.best();

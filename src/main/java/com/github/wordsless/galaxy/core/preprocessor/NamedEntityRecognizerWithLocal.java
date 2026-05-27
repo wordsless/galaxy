@@ -64,10 +64,10 @@ public class NamedEntityRecognizerWithLocal implements NamedEntityRecognizer {
             throw new IllegalArgumentException("Context上下文不能为空");
         }
         Query rawQuery = context.getQuery();
-        if (rawQuery == null || rawQuery.getQuery() == null || rawQuery.getQuery().isBlank()) {
+        if (rawQuery == null || rawQuery.getText() == null || rawQuery.getText().isBlank()) {
             throw new IllegalArgumentException("原始查询字符串不能为空或空白");
         }
-        String queryText = rawQuery.getQuery().trim();
+        String queryText = rawQuery.getText().trim();
 
         try {
             // 2. HanLP 分词 + 实体识别（带位置信息）
@@ -85,7 +85,7 @@ public class NamedEntityRecognizerWithLocal implements NamedEntityRecognizer {
         } catch (Exception e) {
             // 封装HanLP执行异常，保留上下文
             throw new NamedEntityRecognizeException(
-                    "HanLP执行命名实体识别失败，原始查询：" + rawQuery.getQuery(),
+                    "HanLP执行命名实体识别失败，原始查询：" + rawQuery.getText(),
                     e, 0, "HanLP_NER_PROCESS" // 无重试，prompt标记为固定值
             );
         }

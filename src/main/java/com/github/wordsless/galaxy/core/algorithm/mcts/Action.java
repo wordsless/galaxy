@@ -24,9 +24,11 @@
 
 package com.github.wordsless.galaxy.core.algorithm.mcts;
 
+import com.github.wordsless.galaxy.core.entity.Context;
+
 public interface Action<S> {
 
     String getLabel();
 
-    MCTSNode<S> transit(MCTSNode<S> node);
+    MCTSNode<S> transit(final MCTSNode<S> node, final Context context);
 }

@@ -24,6 +24,7 @@
 
 package com.github.wordsless.galaxy.core.algorithm.air;
 
+import com.github.wordsless.galaxy.core.entity.PlanStep;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.With;

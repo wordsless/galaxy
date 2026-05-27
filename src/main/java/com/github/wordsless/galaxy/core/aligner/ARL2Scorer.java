@@ -24,12 +24,16 @@
 
 package com.github.wordsless.galaxy.core.aligner;
 
+import com.github.wordsless.galaxy.core.Scorer;
+
 import java.util.Map;
 
-public class CrossEncoderScorer implements CompositeScorer {
+public class ARL2Scorer implements Scorer {
 
     @Override
     public double score(Map<String, Double> params) {
-        return params.getOrDefault("cross_score", 0.0);
+        double rel = params.getOrDefault("relevance", 0.0);
+        double useful = params.getOrDefault("usefulness", 0.0);
+        return 0.5 * rel + 0.5 * useful;
     }
 }
