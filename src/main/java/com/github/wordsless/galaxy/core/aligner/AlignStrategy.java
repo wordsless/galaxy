@@ -22,26 +22,13 @@
  * SOFTWARE.
  */
 
-package com.github.wordsless.galaxy.core.response;
+package com.github.wordsless.galaxy.core.aligner;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import com.github.wordsless.galaxy.core.entity.Document;
 
 import java.util.List;
 
-/**
- * Response model for retrieval quality evaluation
- * Contains quality score, evaluation reason, retrieved answer and next turn query for retry
- */
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-public class RetrievalQualityResponse extends AbstractBasicResponse {
+public interface AlignStrategy {
 
-    /** Final answer generated from retrieval results */
-    private String answer;
-
-    /** Next turn query for retry retrieval (if quality is below threshold) */
-    private List<String> nextTurnQueries;
+    List<Document> align(List<Document> docs);
 }

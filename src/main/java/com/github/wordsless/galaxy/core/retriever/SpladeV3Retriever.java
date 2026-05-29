@@ -1,82 +1,133 @@
-/*
- * MIT License
- *
- * Copyright (c) ${YEAR} Qiang Li (李强)
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
- */
-
 package com.github.wordsless.galaxy.core.retriever;
 
 import com.github.wordsless.galaxy.core.Retriever;
 import com.github.wordsless.galaxy.core.entity.Document;
 import com.github.wordsless.galaxy.core.entity.Query;
-import com.github.wordsless.galaxy.core.utils.SpladeV3;
+import com.github.wordsless.galaxy.core.encoder.SpladeV3Encoder;
+import dev.langchain4j.data.document.Metadata;
+import dev.langchain4j.data.embedding.Embedding;
+import dev.langchain4j.data.segment.TextSegment;
+import dev.langchain4j.store.embedding.EmbeddingMatch;
+import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
+import dev.langchain4j.store.embedding.milvus.MilvusEmbeddingStore;
+import io.milvus.param.MetricType;
 import lombok.RequiredArgsConstructor;
-import org.springframework.ai.vectorstore.VectorStore;
-import org.springframework.ai.vectorstore.SearchRequest;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import java.util.List;
-import java.util.Map;
+
+import jakarta.annotation.PostConstruct;
+import java.util.*;
 
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class SpladeV3Retriever implements Retriever {
 
-    private final SpladeV3 spladeV3;
-    private final VectorStore milvusVectorStore;
+    private final SpladeV3Encoder spladeV3Encoder;
 
-    /**
-     * 【严格实现】Retriever 接口的 retrieve 方法
-     */
+    @Value("${milvus.host:localhost}")
+    private String milvusHost;
+
+    @Value("${milvus.port:19530}")
+    private Integer milvusPort;
+
+    @Value("${milvus.collectionName:document_collection}")
+    private String collectionName;
+
+    @Value("${milvus.databaseName:default}")
+    private String databaseName;
+
+    @Value("${milvus.topK:5}")
+    private Integer topK;
+
+    private MilvusEmbeddingStore milvusVectorStore;
+
+    @PostConstruct
+    public void initMilvusClient() {
+        try {
+            milvusVectorStore = MilvusEmbeddingStore.builder()
+                    .host(milvusHost)
+                    .port(milvusPort)
+                    .databaseName(databaseName)
+                    .collectionName(collectionName)
+                    .metricType(MetricType.IP)
+                    .build();
+
+            log.info("Langchain4j Milvus 向量存储初始化成功，集合: {}", collectionName);
+        } catch (Exception e) {
+            log.error("Langchain4j Milvus 客户端初始化失败", e);
+            throw new RuntimeException("Langchain4j Milvus 客户端初始化失败", e);
+        }
+    }
+
     @Override
     public List<Document> retrieve(Query rewritedQuery) {
-        // 1. 获取查询文本
         String queryText = rewritedQuery.getText();
+        Embedding queryEmbedding = generateSpladeEmbedding(queryText);
 
-        // 2. 生成 SPLADE v3 稀疏向量（自动按 token 截断 512）
-        Map<String, Float> sparseVector = spladeV3.encode(queryText);
+        EmbeddingSearchRequest request = EmbeddingSearchRequest.builder()
+                .queryEmbedding(queryEmbedding)
+                .maxResults(topK) // 对应你原来的 topK
+                .minScore(0.0)     // 最低相似度，默认0
+                .build();
 
-        // 3. 构建 Milvus 稀疏检索
-        SearchRequest searchRequest = SearchRequest.builder()
-                                                   .query(queryText)
-                                                   .topK(5)
-                                                   .build();
+        List<EmbeddingMatch<TextSegment>> matches;
+        try {
+            // ✅ 适配旧版 API：用 search 方法
+            matches = milvusVectorStore.search(request).matches();
+        } catch (Exception e) {
+            log.error("Langchain4j Milvus 检索失败", e);
+            return Collections.emptyList();
+        }
 
+        return convertToBusinessDocuments(matches);
+    }
 
-        // 4. 执行检索
-        List<org.springframework.ai.document.Document> springAiDocs = milvusVectorStore.similaritySearch(searchRequest);
+    private Embedding generateSpladeEmbedding(String queryText) {
+        Map<String, Float> sparseVector = spladeV3Encoder.encode(queryText);
+        float[] embeddingArray = new float[sparseVector.size()];
+        int index = 0;
+        for (float value : sparseVector.values()) {
+            embeddingArray[index++] = value;
+        }
+        return Embedding.from(embeddingArray);
+    }
 
-        // 5. 转换为项目的 Document 并返回
-        return springAiDocs.stream()
-                .map(this::convert)
-                .toList();
+    private List<Document> convertToBusinessDocuments(List<EmbeddingMatch<TextSegment>> matches) {
+        if (matches.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<Document> documents = new ArrayList<>();
+        for (EmbeddingMatch<TextSegment> match : matches) {
+            // ✅ 适配旧版 API：用 content() 获取 TextSegment
+            TextSegment segment = match.embedded();
+            Document doc = new Document();
+
+            Metadata metadata = segment.metadata();
+            // ✅ 适配旧版 Metadata API：用 getAsString/getAsLong
+            String idStr = metadata.getString("id");
+            doc.setId(Long.parseLong(idStr));
+            doc.setContent(segment.text());
+            doc.setMetadata(convertMetadata(metadata));
+
+            documents.add(doc);
+        }
+        return documents;
     }
 
     /**
-     * Spring AI Document → 你的业务 Document
+     * 适配旧版 Metadata 的转换方法（无 keys/asMap）
      */
-    private Document convert(org.springframework.ai.document.Document aiDoc) {
-        Document document = new Document();
-        document.setId(Long.parseLong(aiDoc.getId()));
-        document.setContent(aiDoc.getText());
-        document.setMetadata(aiDoc.getMetadata());
-        return document;
+    private Map<String, Object> convertMetadata(Metadata metadata) {
+        Map<String, Object> map = new HashMap<>();
+        // 手动列出你用到的所有元数据字段，这里示例几个常用的
+        // 你可以根据自己的业务补充更多字段
+        map.put("id", metadata.getString("id"));
+        map.put("source", metadata.getString("source"));
+        map.put("title", metadata.getString("title"));
+        map.put("timestamp", metadata.getLong("timestamp"));
+        return map;
     }
 }

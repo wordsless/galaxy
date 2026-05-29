@@ -32,6 +32,7 @@ import com.github.wordsless.galaxy.core.algorithm.mcts.Action;
 import com.github.wordsless.galaxy.core.algorithm.mcts.MCTSNode;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 public class StarAction implements Action<StarState> {
@@ -79,10 +80,8 @@ public class StarAction implements Action<StarState> {
         var subquery = generateSubqueryDelegator.delegate(request, new TypeReference<List<Query>>(){}).getFirst();
         var docs = retriever.retrieve(subquery);
 
-        var pair = new EntityWithScore<Query, List<Document>>();
-        pair.setEntity(subquery);
-        pair.setValue(docs);
-
+        var pair = new HashMap<Query, List<Document>>(1);
+        pair.put(subquery, docs);
         context.getReferences().add(pair);
 
         request = this.generateAnswerRequest.withContext(context);

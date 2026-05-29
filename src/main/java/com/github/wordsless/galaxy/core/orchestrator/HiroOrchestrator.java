@@ -27,6 +27,10 @@ package com.github.wordsless.galaxy.core.orchestrator;
 import com.github.wordsless.galaxy.core.algorithm.hiro.HiroEngine;
 import com.github.wordsless.galaxy.core.algorithm.hiro.HiroTreeNode;
 import com.github.wordsless.galaxy.core.algorithm.tree.TreeNode;
+import com.github.wordsless.galaxy.core.entity.Context;
+import com.github.wordsless.galaxy.core.entity.Document;
+import com.github.wordsless.galaxy.core.entity.Query;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -48,23 +52,9 @@ public class HiroOrchestrator extends AbstractBasicOrchestrator {
     // 🔥 真正实现：严格按照检索策略章节 HIRO 流程
     // ==============================================
     @Override
-    public List<String> retrieve(Map<String, ?> context) {
-        List<String> output = new ArrayList<>();
+    public List<Map<Query, List<Document>>> retrieve(final Context context) {
 
-        // 1. 从上下文获取
-        HiroTreeNode root    = (HiroTreeNode) context.get(KEY_ROOT_NODE);
-        float[] queryVector  = (float[]) context.get(KEY_QUERY_VECTOR);
-        String rawQuery      = (String) context.get(KEY_RAW_QUERY); // 仅用于日志
-
-        // 2. 必要校验
-        if (root == null || queryVector == null) {
-            return output;
-        }
-
-        // 3. 执行 HIRO 递归检索（完全来自论文）
-        dfsPruneRetrieve(root, queryVector, 0.0, output);
-
-        return output;
+        return null;
     }
 
     /**

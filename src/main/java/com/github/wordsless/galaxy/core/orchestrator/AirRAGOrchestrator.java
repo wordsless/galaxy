@@ -22,25 +22,35 @@
  * SOFTWARE.
  */
 
-package com.github.wordsless.galaxy.core.response;
+package com.github.wordsless.galaxy.core.orchestrator;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import com.github.wordsless.galaxy.core.algorithm.air.ReasonEngine;
+import com.github.wordsless.galaxy.core.algorithm.air.ReasoningState;
+import com.github.wordsless.galaxy.core.algorithm.mcts.MCTSNode;
+import com.github.wordsless.galaxy.core.entity.Context;
+import com.github.wordsless.galaxy.core.entity.Document;
+import com.github.wordsless.galaxy.core.entity.Query;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
-/**
- * Adaptive RAG Decision Response
- * Used for AT RAG routing: NO_RETRIEVAL / SINGLE_RETRIEVAL / MULTI_HOP_RETRIEVAL
- */
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class AdaptiveDecisionResponse extends AbstractBasicResponse {
-    /**
-     * Final retrieval decision type
-     */
-    private String retrievalType;
+import java.util.List;
+import java.util.Map;
 
+@Component
+public class AirRAGOrchestrator extends AbstractBasicOrchestrator {
+
+    private final ReasonEngine engine;
+
+    @Autowired
+    public AirRAGOrchestrator(ReasonEngine engine) {
+        this.engine = engine;
+    }
+
+    @Override
+    public List<Map<Query, List<Document>>> retrieve(Context context) {
+        var query = context.getQuery();
+        MCTSNode<ReasoningState<Query>> root = new MCTSNode<>();
+        root.getState().setRawQuery(query.getText());
+        return List.of();
+    }
 }

@@ -22,15 +22,9 @@
  * SOFTWARE.
  */
 
-package com.github.wordsless.galaxy.core.response;
+package com.github.wordsless.galaxy.core;
 
-import lombok.*;
+public interface Encoder<T> {
 
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-@EqualsAndHashCode(callSuper=true)
-public class DirectAnswerResponse extends AbstractBasicResponse {
-
-    protected String answer;
+    T encode(String text);
 }

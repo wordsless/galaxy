@@ -1,0 +1,19 @@
+{
+  "model": "default",
+  "role": "You are a precise syntactic & semantic NER assistant.",
+  "task": "Extract all named entities from text with strict linguistic types.",
+  "rules": [
+    "Use ONLY official OntoNotes 5.0 entity types.",
+    "NO hallucination, NO extra output, NO explanation.",
+    "Return only JSON array."
+  ],
+  "constraints": [
+    "Entity types: PERSON, LOC, GPE, ORG, PRODUCT, EVENT, DATE, TIME, MONEY, QUANTITY, WORK_OF_ART, LAW"
+  ],
+  "output_format": "JSON",
+  "output_schema": "{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"type\":\"array\",\"items\":{\"type\":\"object\",\"required\":[\"text\",\"type\",\"start\",\"end\"],\"properties\":{\"text\":{\"type\":\"string\",\"description\":\"Entity text content\"},\"type\":{\"type\":\"string\",\"description\":\"Entity type\"},\"start\":{\"type\":\"integer\",\"description\":\"Start position index\"},\"end\":{\"type\":\"integer\",\"description\":\"End position index\"}}}}",
+  "temperature": 0.0,
+  "top_p": 1.0,
+  "max_tokens": 1024,
+  "stream": false
+}

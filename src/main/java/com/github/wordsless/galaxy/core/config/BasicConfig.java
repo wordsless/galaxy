@@ -22,16 +22,17 @@
  * SOFTWARE.
  */
 
-package com.github.wordsless.galaxy.core.response;
+package com.github.wordsless.galaxy.core.config;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 
-@EqualsAndHashCode(callSuper = true)
-@Data
-@AllArgsConstructor
-public class SimulationResponse extends AbstractBasicResponse {
+@Configuration
+public class BasicConfig {
 
-    private double reward;
+    @Bean
+    public ObjectMapper objectMapper() {
+        return new ObjectMapper();
+    }
 }

@@ -5,6 +5,8 @@ import com.github.wordsless.galaxy.core.Scorer;
 import com.github.wordsless.galaxy.core.entity.Document;
 import com.github.wordsless.galaxy.core.utils.MonteCarloSampler;
 import org.jspecify.annotations.NonNull;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 
 import java.util.*;
@@ -14,15 +16,25 @@ import java.util.*;
  * 核心职责：多轮迭代对齐 + 智能采样 + 多维度评分 + 低质过滤，输出高质量文档集
  * 设计定位：RAG 检索后增强核心组件（对齐→重排→过滤）
  */
-public class DefaultAligner {
+@Component
+public class DefaultAlignStrategy implements AlignStrategy {
 
     private final MonteCarloSampler<Document> sampler;
     private final Aligner aligner;
     private final List<Scorer> scorers;
 
-    public DefaultAligner(@NonNull final Aligner aligner,
-                          final MonteCarloSampler<Document> sampler,
-                          final List<Scorer> scorers) {
+    @Value("token_count_limit")
+    private long tokenCountLimit;
+
+    @Value("iterate_count")
+    private int iterCount;
+
+    @Value("threshold")
+    private double threshold;
+
+    public DefaultAlignStrategy(@NonNull final Aligner aligner,
+                                final MonteCarloSampler<Document> sampler,
+                                final List<Scorer> scorers) {
         this.sampler = sampler;
         this.aligner = aligner;
         this.scorers = CollectionUtils.isEmpty(scorers) ? Collections.emptyList() : scorers;
@@ -31,12 +43,10 @@ public class DefaultAligner {
     /**
      * 文档对齐主流程
      * @param docs 原始检索文档
-     * @param tokenCountLimit 单轮token上限
-     * @param iterCount 迭代次数
-     * @param threshold 分数过滤阈值
      * @return 最终高质量文档
      */
-    public List<Document> align(List<Document> docs, long tokenCountLimit, int iterCount, double threshold) {
+    @Override
+    public List<Document> align(List<Document> docs) {
         // 1. 入参基础校验
         if (CollectionUtils.isEmpty(docs)) {
             return Collections.emptyList();

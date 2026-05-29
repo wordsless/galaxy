@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) ${YEAR} Qiang Li (李强)
+ * Copyright (c) 2025 Qiang Li (李强)
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,93 +25,111 @@
 package com.github.wordsless.galaxy.core.retriever;
 
 import com.github.wordsless.galaxy.core.Retriever;
-import com.github.wordsless.galaxy.core.utils.MicroServiceCaller;
-import com.github.wordsless.galaxy.core.vectordb.DocsEngine;
-import com.github.wordsless.galaxy.core.vectordb.VectorDatabase;
+import com.github.wordsless.galaxy.core.Encoder;
+import com.github.wordsless.galaxy.core.entity.Document;
+import com.github.wordsless.galaxy.core.entity.Query;
+
+import dev.langchain4j.data.embedding.Embedding;
+import dev.langchain4j.data.segment.TextSegment;
+import dev.langchain4j.store.embedding.EmbeddingMatch;
+import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
+import dev.langchain4j.store.embedding.EmbeddingStore;
+
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import java.util.Collections;
+
 import java.util.List;
-import java.util.Objects;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
- * Dense Retriever Implementation
- *
- * Role:
- * Performs dense retrieval based on BERT sentence embeddings and vector database search.
- * Supports standard dense retrieval algorithms: DPR, BGE, E5, Contriever, ANCE, etc.
- *
- * Working Method:
- * 1. Encode user query into a dense vector using a remote BERT service.
- * 2. Perform ANN (Approximate Nearest Neighbor) search in vector database.
- * 3. Return top-K relevant document IDs and fetch full text from DocsEngine.
- *
- * Output: List of relevant document contents (same as generative/sparse retrievers).
+ * 基于 Langchain4j EmbeddingStore 实现的稠密检索器
+ * 适配所有版本API，修复所有编译错误
  */
 @Slf4j
 @Component
 public class DenseRetriever implements Retriever {
 
-    private final String collectionName;
-    private final MicroServiceCaller caller;
-    private final VectorDatabase vectorDatabase;
-    private final DocsEngine engine;
-    private final int topK;
-    private final String algorithmType;
+    private final Encoder<float[]> questionEncoder;
+    private final EmbeddingStore<TextSegment> embeddingStore;
 
-    public DenseRetriever(String collectionName,
-                          MicroServiceCaller caller,
-                          VectorDatabase vectorDatabase,
-                          DocsEngine engine,
-                          int topK,
-                          String algorithmType) {
-        this.collectionName = collectionName;
-        this.caller = caller;
-        this.vectorDatabase = vectorDatabase;
-        this.engine = engine;
-        this.topK = topK;
-        this.algorithmType = algorithmType;
+    @Value("${galaxy.retriever.topK:10}")
+    private int topK;
+
+    @Value("${galaxy.retriever.scoreThreshold:0.0}")
+    private double scoreThreshold;
+
+    public DenseRetriever(final Encoder<float[]> questionEncoder,
+                          final EmbeddingStore<TextSegment> embeddingStore) {
+        this.questionEncoder = questionEncoder;
+        this.embeddingStore = embeddingStore;
     }
 
     @Override
-    public List<String> retrieve(String rewrittenQuery) {
+    public List<Document> retrieve(Query rewritedQuery) {
         try {
-            // Parameter validation
-            if (rewrittenQuery == null || rewrittenQuery.isBlank()) {
-                log.warn("DenseRetriever: query is empty, return empty list");
-                return Collections.emptyList();
+            // 1. 入参校验
+            if (rewritedQuery == null || rewritedQuery.getText() == null || rewritedQuery.getText().isBlank()) {
+                log.warn("DenseRetriever retrieve failed: query text is empty");
+                return List.of();
             }
-            if (topK <= 0) {
-                log.warn("DenseRetriever: topK [{}] is invalid", topK);
-                return Collections.emptyList();
-            }
+            String queryText = rewritedQuery.getText();
+            log.info("Start dense retrieve for query: {}", queryText);
 
-            // Encode query to dense vector
-            float[] queryVector = caller.queryEncode(algorithmType, rewrittenQuery);
-            if (queryVector == null || queryVector.length == 0) {
-                log.error("DenseRetriever: query embedding is null or empty");
-                return Collections.emptyList();
-            }
+            // 2. 查询文本向量化
+            float[] vector = questionEncoder.encode(queryText);
+            Embedding queryEmbedding = Embedding.from(vector);
 
-            // ANN search in vector database
-            var docIdList = vectorDatabase.search(collectionName, queryVector, topK);
+            // 3. 执行向量库近邻搜索（Langchain4j 通用API，兼容新旧版本）
+            EmbeddingSearchRequest request = EmbeddingSearchRequest.builder()
+                    .queryEmbedding(queryEmbedding)
+                    .maxResults(topK)
+                    .minScore(scoreThreshold)
+                    .build();
 
-            // Get real document content
-            return docIdList.stream()
-                    .map(docId -> {
-                        try {
-                            return engine.getDocumentById(docId.getId());
-                        } catch (Exception e) {
-                            log.error("DenseRetriever: failed to get document by id: {}", docId.getId(), e);
-                            return null;
-                        }
-                    })
-                    .filter(Objects::nonNull)
-                    .toList();
+            List<EmbeddingMatch<TextSegment>> matches = embeddingStore.search(request).matches();
+
+            // 4. 转换结果为自定义 Document
+            return matches.stream()
+                    .map(this::convertToCustomDocument)
+                    .collect(Collectors.toList());
 
         } catch (Exception e) {
-            log.error("DenseRetriever: retrieval failed", e);
-            return Collections.emptyList();
+            log.error("DenseRetriever retrieve error", e);
+            return List.of();
         }
+    }
+
+    /**
+     * 将 Langchain4j EmbeddingMatch 转换为自定义 Document
+     * 修复了 id() 和 setScore 不存在的问题
+     */
+    private Document convertToCustomDocument(EmbeddingMatch<TextSegment> match) {
+        TextSegment segment = match.embedded();
+        Document document = new Document();
+
+        // --- 1. 处理ID（适配TextSegment无id()方法的情况）---
+        // 方案A：从Metadata里取ID（推荐，你建库时把ID存在Metadata里）
+        String docId = segment.metadata().getString("id");
+        if (docId == null) {
+            // 方案B：如果Metadata里没有，就用null或生成UUID（根据你的业务调整）
+            docId = java.util.UUID.randomUUID().toString();
+        }
+        document.setId(Long.parseLong(docId));
+
+        // --- 2. 处理文本内容 ---
+        document.setContent(segment.text());
+
+        // --- 3. 处理相似度分数（适配你的Document没有setScore的情况）---
+        // 方案A：如果你的Document有setScore方法，直接用
+        // document.setScore(match.score());
+
+        // 方案B：如果没有setScore，就把分数存到Metadata里（兼容所有情况）
+        Map<String, Object> metadataMap = segment.metadata().toMap();
+        metadataMap.put("score", match.score());
+        document.setMetadata(metadataMap);
+
+        return document;
     }
 }

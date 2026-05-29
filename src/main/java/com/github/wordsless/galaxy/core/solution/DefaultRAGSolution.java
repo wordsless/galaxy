@@ -26,6 +26,7 @@ package com.github.wordsless.galaxy.core.solution;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.github.wordsless.galaxy.core.*;
+import com.github.wordsless.galaxy.core.aligner.AlignStrategy;
 import com.github.wordsless.galaxy.core.entity.ChatModelRequest;
 import com.github.wordsless.galaxy.core.entity.Context;
 import com.github.wordsless.galaxy.core.entity.Query;
@@ -44,7 +45,7 @@ public class DefaultRAGSolution {
 
     private final Orchestrator orchestrator;
 
-    private final Aligner aligner;
+    private final AlignStrategy aligner;
 
     private final Reranker reranker;
 
@@ -61,7 +62,7 @@ public class DefaultRAGSolution {
 
     public DefaultRAGSolution(final Preprocessor preprocessor,
                               @NonNull final Orchestrator orchestrator,
-                              final Aligner aligner,
+                              final AlignStrategy aligner,
                               final Reranker reranker,
                               final List<Evaluator> evaluators,
                               final Retrier retrier,
@@ -92,22 +93,25 @@ public class DefaultRAGSolution {
             var docs = this.orchestrator.retrieve(context);
             if(this.aligner != null && this.reranker != null) {
                 for(var pair : docs) {
-                    var list = pair.getValue();
-                    var aligned  = this.aligner.align(list, 10000, 10);
+                    var q = pair.keySet().iterator().next();
+                    var list = pair.get(q);
+                    var aligned  = this.aligner.align(list);
                     var reranked = this.reranker.rerank(aligned, context);
-                    pair.setValue(reranked);
+                    pair.put(q, reranked);
                 }
             } else if(this.aligner == null && this.reranker != null) {
                 for(var pair : docs) {
-                    var list = pair.getValue();
+                    var q = pair.keySet().iterator().next();
+                    var list = pair.get(q);
                     var reranked = this.reranker.rerank(list, context);
-                    pair.setValue(reranked);
+                    pair.put(q, reranked);
                 }
             } else if(this.aligner != null/*&& this.reranker == null*/) { // when code has run here, means reranker must be true.
                 for(var pair : docs) {
-                    var list = pair.getValue();
-                    var aligned  = this.aligner.align(list, 10000, 10);
-                    pair.setValue(aligned);
+                    var q = pair.keySet().iterator().next();
+                    var list = pair.get(q);
+                    var aligned  = this.aligner.align(list);
+                    pair.put(q, aligned);
                 }
             }
             context.setReferences(docs);

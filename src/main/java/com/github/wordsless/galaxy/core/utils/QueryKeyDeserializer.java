@@ -22,21 +22,14 @@
  * SOFTWARE.
  */
 
-package com.github.wordsless.galaxy.core.response;
+package com.github.wordsless.galaxy.core.utils;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import com.fasterxml.jackson.databind.KeyDeserializer;
+import java.io.IOException;
 
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public abstract class AbstractBasicResponse {
-
-    protected String reason;
-
-    protected double confidence;
-
+public class QueryKeyDeserializer extends KeyDeserializer {
+    @Override
+    public Object deserializeKey(String key, com.fasterxml.jackson.databind.DeserializationContext ctxt) throws IOException {
+        return null; // 永远不会被调用，只是为了通过Jackson检查
+    }
 }

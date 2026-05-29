@@ -4,10 +4,9 @@ import io.milvus.client.MilvusServiceClient;
 import io.milvus.param.ConnectParam;
 import io.milvus.param.IndexType;
 import io.milvus.param.MetricType;
-import org.springframework.ai.embedding.EmbeddingModel;
-import org.springframework.ai.embedding.TokenCountBatchingStrategy;
-import org.springframework.ai.vectorstore.VectorStore;
-import org.springframework.ai.vectorstore.milvus.MilvusVectorStore;
+import dev.langchain4j.data.segment.TextSegment;
+import dev.langchain4j.store.embedding.EmbeddingStore;
+import dev.langchain4j.store.embedding.milvus.MilvusEmbeddingStore;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -25,16 +24,16 @@ public class MilvusAiConfig {
         );
     }
 
-    // MilvusVectorStore 启用 BM25（不需要 EmbeddingModel）
+    // Langchain4j 适配的 Milvus 向量存储
     @Bean
-    public VectorStore vectorStore(MilvusServiceClient milvusClient, EmbeddingModel embeddingModel) {
-        return MilvusVectorStore.builder(milvusClient, embeddingModel)
+    public EmbeddingStore<TextSegment> embeddingStore(MilvusServiceClient milvusClient) {
+        return MilvusEmbeddingStore.builder()
+                .milvusClient(milvusClient)
                 .collectionName("test_vector_store")
                 .databaseName("default")
+                .dimension(1536) // 根据实际使用的嵌入模型维度调整
                 .indexType(IndexType.IVF_FLAT)
                 .metricType(MetricType.COSINE)
-                .batchingStrategy(new TokenCountBatchingStrategy())
-                .initializeSchema(true)
                 .build();
     }
 }

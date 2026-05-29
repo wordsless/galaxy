@@ -24,6 +24,8 @@
 
 package com.github.wordsless.galaxy.core.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import lombok.*;
@@ -38,16 +40,15 @@ import java.util.Map;
  * @author Qiang Li
  * @since 1.0
  */
-@Builder(toBuilder = true) // Allow copying with modifications
-@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class) // Map fields like `topP` -> `top_p`
 @Data
 @With
+@NoArgsConstructor
+@AllArgsConstructor
 public class ChatModelRequest {
 
     // ==================== Core Prompt Components ====================
 
     /** The LLM model identifier (e.g., "gpt-4", "claude-3-opus") */
-    @NonNull
     String model;
 
     /** Role definition (e.g., "You are a helpful assistant") */
@@ -72,7 +73,11 @@ public class ChatModelRequest {
     Context context;
 
     /** Structured output format specification;*/
+    @JsonProperty("output_format")
     String outputFormat;
+
+    @JsonProperty("output_schema")
+    String outputSchema;
 
     String answer;
 
@@ -82,47 +87,41 @@ public class ChatModelRequest {
      * Sampling temperature (0.0 - 2.0). Higher = more random, lower = more deterministic.
      * Default: 0.7
      */
-    @Builder.Default
     Double temperature = 0.7;
 
     /**
      * Nucleus sampling threshold (0.0 - 1.0). Only tokens with cumulative probability >= topP are considered.
      * Default: 1.0 (disabled)
      */
-    @Builder.Default
+    @JsonProperty("top_p")
     Double topP = 1.0;
 
     /** Maximum number of tokens to generate. null = model's maximum allowed. */
+    @JsonProperty("max_tokens")
     Integer maxTokens;
 
     /**
      * Presence penalty (-2.0 - 2.0). Positive values discourage repeating tokens already present.
      * Default: 0.0
      */
-    @Builder.Default
     Double presencePenalty = 0.0;
 
     /**
      * Frequency penalty (-2.0 - 2.0). Positive values discourage frequent token repetition.
      * Default: 0.0
      */
-    @Builder.Default
     Double frequencyPenalty = 0.0;
 
     /** Number of completion choices to generate per prompt. Default: 1 */
-    @Builder.Default
     Integer n = 1;
 
     /** Whether to stream partial results as they are generated. Default: false */
-    @Builder.Default
     Boolean stream = false;
 
     /** Whether to return log probabilities of the generated tokens. Default: false */
-    @Builder.Default
     Boolean logprobs = false;
 
     /** Whether to echo the prompt in the response. Default: false */
-    @Builder.Default
     Boolean echo = false;
 
     /** Deterministic seed for reproducible results (not supported by all providers). */
@@ -132,7 +131,6 @@ public class ChatModelRequest {
      * Number of completions generated server-side to choose the best one.
      * Requires provider support. Default: 1 (same as n)
      */
-    @Builder.Default
     Integer bestOf = 1;
 
     /**

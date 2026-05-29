@@ -22,33 +22,31 @@
  * SOFTWARE.
  */
 
-package com.github.wordsless.galaxy.core.preprocessor;
+package com.github.wordsless.galaxy.core.config;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.github.wordsless.galaxy.core.ChatModelDelegator;
 import com.github.wordsless.galaxy.core.entity.ChatModelRequest;
-import com.github.wordsless.galaxy.core.entity.Context;
+import com.github.wordsless.galaxy.core.entity.Query;
+import com.github.wordsless.galaxy.core.preprocessor.NamedEntityRecognizer;
+import com.github.wordsless.galaxy.core.preprocessor.NamedEntityRecognizerWithChatModel;
+import com.github.wordsless.galaxy.core.preprocessor.NamedEntityRecognizerWithLocal;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 
 import java.util.List;
-import java.util.Map;
 
-public class MultiQueryRewriter implements IQueryFilter {
+@Configuration
+public class NamedEntityRecognizeConfig {
 
-    private final ChatModelDelegator<List<String>> chatModelDelegator;
-
-    private final ChatModelRequest multiRewriteRequest;
-
-    public MultiQueryRewriter(final ChatModelDelegator<List<String>> chatModelDelegator,
-                              final ChatModelRequest multiRewriteRequest) {
-        this.chatModelDelegator = chatModelDelegator;
-        this.multiRewriteRequest = multiRewriteRequest;
+    @Bean("NamedEntityRecognizerWithLocal")
+    public NamedEntityRecognizer getNamedEntityRecognizerWithLocal() {
+        return new NamedEntityRecognizerWithLocal();
     }
 
-    @Override
-    public void process(Context context) {
-        var rawQuery = context.getQuery();
-        var request = multiRewriteRequest.withRawQuery(rawQuery);
-        var results = this.chatModelDelegator.delegate(request, new TypeReference<List<String>>() {});
-        ((Map) context).put("RewritedMultiQueries", results);
+    @Bean("NamedEntityRecognizerWithChatModel")
+    public NamedEntityRecognizer getNamedEntityRecognizerWithChatModel(@Qualifier("NamedEntityRecognizeDelegator") final ChatModelDelegator<List<Query.Entity>> delegator,
+                                                                       @Qualifier("NamedEntityRecognizeRequest") final ChatModelRequest request) {
+        return new NamedEntityRecognizerWithChatModel(delegator, request);
     }
 }

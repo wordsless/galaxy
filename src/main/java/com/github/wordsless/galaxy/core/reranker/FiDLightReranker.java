@@ -59,9 +59,9 @@ public class FiDLightReranker implements Reranker {
     }
 
     @Override
-    public List<Document> rerank(List<Document> docs, final Context context) throws TranslateException {
+    public List<Document> rerank(List<Document> docs, final Context context) {
         // 1. 获取原始 query
-        String query = context.getQuery();
+        String query = context.getQuery().getText();
         if (docs == null || docs.isEmpty()) return new ArrayList<>();
 
         // 2. 对所有文档批量编码 + f_k 裁剪
@@ -70,7 +70,12 @@ public class FiDLightReranker implements Reranker {
             // 构造论文输入格式
             String inputText = "query: " + query + " content: " + doc.getContent();
             // 编码得到 [seq_len, 768]
-            float[][] seq2d = encoder.predict(inputText);
+            float[][] seq2d = null;
+            try {
+                seq2d = encoder.predict(inputText);
+            } catch (TranslateException e) {
+                throw new RuntimeException(e);
+            }
             // f_k 裁剪：前 K 个向量
             float[][] compressed = Arrays.copyOf(seq2d, Math.min(K, seq2d.length));
             compressedList.add(compressed);

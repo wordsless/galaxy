@@ -22,13 +22,14 @@
  * SOFTWARE.
  */
 
-package com.github.wordsless.galaxy.core.utils;
+package com.github.wordsless.galaxy.core.encoder;
 
 import ai.djl.huggingface.tokenizers.Encoding;
 import ai.djl.huggingface.tokenizers.HuggingFaceTokenizer;
 import ai.djl.inference.Predictor;
 import ai.djl.repository.zoo.Criteria;
 import ai.djl.repository.zoo.ZooModel;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import jakarta.annotation.PostConstruct;
@@ -37,10 +38,12 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Component
-public class SpladeV3 {
+public class SpladeV3Encoder {
 
     private static final String MODEL = "naver/splade-v3";
-    private static final float THRESHOLD = 0.01f;
+
+    @Value("splade.v3.threshold")
+    private float THRESHOLD = 0.01f;
 
     private HuggingFaceTokenizer tokenizer;
     private ZooModel<String[], float[][]> model;
@@ -83,7 +86,9 @@ public class SpladeV3 {
 
     @PreDestroy
     public void close() {
-        if (predictor != null) predictor.close();
-        if (model != null) model.close();
+        if (predictor != null)
+            predictor.close();
+        if (model != null)
+            model.close();
     }
 }

@@ -28,45 +28,40 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.wordsless.galaxy.core.entity.ChatModelRequest;
+import com.github.wordsless.galaxy.core.entity.Context;
 import dev.langchain4j.model.chat.ChatModel;
+import lombok.Value;
+import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.github.wordsless.galaxy.core.exception.ChatModelInvokerException;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 
 import java.util.Objects;
 
-@Component
+@Slf4j
 public class ChatModelDelegator<T> {
-
-    private static final Logger logger = LoggerFactory.getLogger(ChatModelDelegator.class);
-
-    /**
-     * Maximum prompt length, adjustable based on actual LLM configuration.
-     */
-    private static final int MAX_PROMPT_LENGTH = 8192;
 
     protected final ChatModel chatModel;
 
     protected final ObjectMapper mapper;
 
-    @Autowired
-    public ChatModelDelegator(ChatModel chatModel, ObjectMapper mapper) {
+    protected final int maxRetryCount;
+
+    public ChatModelDelegator(final ChatModel chatModel, final ObjectMapper mapper, final int maxRetryCount) {
         this.chatModel = chatModel;
         this.mapper = mapper;
+        this.maxRetryCount = maxRetryCount;
     }
 
     /**
      * Execute LLM call with JSON Schema validation and auto-retry support.
      *
-     * @param maxRetryCount maximum retry count (only for JSON format/deserialization failures)
      * @return deserialized target object
      */
-    public T delegate(final int maxRetryCount,
-                      final ChatModelRequest request,
+    public T delegate(final ChatModelRequest request,
                       final TypeReference<T> typeReference) {
+        System.out.println("=========1===========");
         // Input parameter validation
         if (maxRetryCount < 1) {
             throw new ChatModelInvokerException("Max retry count must be greater than 0");
@@ -79,35 +74,34 @@ public class ChatModelDelegator<T> {
             try {
                 var prompt = buildPromptWithRequest(request);
                 // 2. Call LLM
-                logger.info("Start invoking LLM, current retry count: {}", retryCount);
+                log.info("Start invoking LLM, current retry count: {}", retryCount);
                 String response = chatModel.chat(prompt);
-
                 // Validate non-empty response
                 if (response == null || response.isBlank()) {
                     throw new ChatModelInvokerException("LLM returned empty response");
                 }
                 // Log raw response for troubleshooting
-                logger.debug("LLM raw response: {}", response);
+                log.debug("LLM raw response: {}", response);
 
                 // 4. Deserialize JSON to target object
                 T result = mapper.readValue(response, mapper.constructType(typeReference.getType()));
-                logger.info("LLM invocation succeeded, deserialization completed, retry count: {}", retryCount);
+                log.info("LLM invocation succeeded, deserialization completed, retry count: {}", retryCount);
                 return result;
             } catch (JsonProcessingException e) {
                 // JSON deserialization exception only
-                logger.error("JSON deserialization failed, current retry count: {}", retryCount, e);
+                log.error("JSON deserialization failed, current retry count: {}", retryCount, e);
                 if (retryCount == maxRetryCount - 1) {
                     throw new ChatModelInvokerException("JSON deserialization failed, reached max retry count: " + maxRetryCount, e);
                 }
             } catch (ChatModelInvokerException e) {
                 // Business exceptions (empty prompt, length exceeded, empty response, etc.)
-                logger.error("LLM call business exception, retry count: {}, message: {}", retryCount, e.getMessage(), e);
+                log.error("LLM call business exception, retry count: {}, message: {}", retryCount, e.getMessage(), e);
                 if (retryCount == maxRetryCount - 1) {
                     throw e;
                 }
             } catch (Exception e) {
                 // Other unknown exceptions
-                logger.error("LLM call execution exception, current retry count: {}", retryCount, e);
+                log.error("LLM call execution exception, current retry count: {}", retryCount, e);
                 if (retryCount == maxRetryCount - 1) {
                     throw new ChatModelInvokerException("LLM call failed, reached max retry count: " + maxRetryCount, e);
                 }
@@ -116,11 +110,6 @@ public class ChatModelDelegator<T> {
 
         // All retries exhausted without success
         throw new ChatModelInvokerException("LLM call failed, reached max retry count: " + maxRetryCount);
-    }
-
-    public T delegate(final ChatModelRequest request,
-                      final TypeReference<T> typeReference) {
-        return this.delegate(3, request, typeReference);
     }
 
     public String buildPromptWithRequest(@NonNull final ChatModelRequest request) {
@@ -141,19 +130,29 @@ public class ChatModelDelegator<T> {
         sb.append("# Output Language:\n%s\n\n".formatted(request.getOutputLanguage()));
 
         var context = request.getContext();
-        sb.append("# Context:\n");
-        context.getConversations().forEach(conversation -> {
-            sb.append("- %s\n".formatted(conversation.toString()));
-        });
-        sb.append("\n");
-        sb.append("# References:\n");
-        context.getReferences().forEach(item -> {
-            sb.append("%s\n".formatted(item.getEntity().toString()));
-            item.getValue().forEach(value -> {
-                sb.append("- %s\n".formatted(value.toString()));
+        var conversations = context.getConversations();
+        if(conversations != null && !conversations.isEmpty()) {
+            sb.append("# Context:\n");
+            conversations.forEach(conversation -> {
+                sb.append("- %s\n".formatted(conversation.toString()));
             });
-        });
-        sb.append("\n");
+            sb.append("\n");
+        }
+
+        var references = context.getReferences();
+        if(references != null && !references.isEmpty()) {
+            sb.append("# References:\n");
+            references.forEach(item -> {
+                var query = item.keySet().iterator().next();
+                var docs = item.get(query);
+                sb.append("%s\n".formatted(query.toString()));
+                docs.forEach(value -> {
+                    sb.append("- %s\n".formatted(value.toString()));
+                });
+            });
+            sb.append("\n");
+        }
+
         sb.append("# Generation Parameters:\n");
 
         var temperature = request.getTemperature();

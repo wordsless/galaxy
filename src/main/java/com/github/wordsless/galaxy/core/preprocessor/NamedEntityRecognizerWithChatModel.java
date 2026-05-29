@@ -29,6 +29,8 @@ import com.github.wordsless.galaxy.core.entity.ChatModelRequest;
 import com.github.wordsless.galaxy.core.ChatModelDelegator;
 import com.github.wordsless.galaxy.core.entity.Context;
 import com.github.wordsless.galaxy.core.entity.Query;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 import java.util.List;
 
@@ -39,16 +41,18 @@ import java.util.List;
  * 2. 入参空值校验
  * 3. 异常上下文补充
  */
+@Component
 public class NamedEntityRecognizerWithChatModel implements NamedEntityRecognizer {
 
     private final ChatModelDelegator<List<Query.Entity>> chatModelDelegator;
 
-    private final ChatModelRequest namedEntityRequest;
+    private final ChatModelRequest namedEntityRecognizeRequest;
 
+    @Autowired
     public NamedEntityRecognizerWithChatModel(final ChatModelDelegator<List<Query.Entity>> chatModelDelegator,
-                                              final ChatModelRequest namedEntityRequest) {
+                                              final ChatModelRequest namedEntityRecognizeRequest) {
         this.chatModelDelegator = chatModelDelegator;
-        this.namedEntityRequest = namedEntityRequest;
+        this.namedEntityRecognizeRequest = namedEntityRecognizeRequest;
     }
 
     @Override
@@ -56,7 +60,8 @@ public class NamedEntityRecognizerWithChatModel implements NamedEntityRecognizer
         var query = context.getQuery();
         if(query == null)
             throw new NullPointerException("RawQuery is null");
-        var request = namedEntityRequest.withRawQuery(query);
+        var request = namedEntityRecognizeRequest.withRawQuery(query);
+        request.setContext(context);
         var NERs = chatModelDelegator.delegate(request, new TypeReference<List<Query.Entity>>() {});
         query.setNERs(NERs);
     }

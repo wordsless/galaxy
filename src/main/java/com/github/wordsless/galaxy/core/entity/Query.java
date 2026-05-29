@@ -24,6 +24,11 @@
 
 package com.github.wordsless.galaxy.core.entity;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.github.wordsless.galaxy.core.utils.QueryDeserializer;
+import com.github.wordsless.galaxy.core.utils.QueryKeyDeserializer;
+import com.github.wordsless.galaxy.core.utils.QuerySerializer;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -35,6 +40,8 @@ import java.util.List;
 @With
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonSerialize(using = QuerySerializer.class)
+@JsonDeserialize(using = QueryDeserializer.class, keyUsing = QueryKeyDeserializer.class)
 public class Query {
 
     @Data
@@ -70,13 +77,15 @@ public class Query {
     public String toString() {
         var sb = new StringBuilder();
         sb.append("%d. %s:\n".formatted(sn, text));
-        sb.append("NERs: [");
-        for(var entity : NERs) {
-            sb.append(entity.toString());
-            sb.append(", ");
+        if(NERs != null && !NERs.isEmpty()) {
+            sb.append("NERs: [");
+            for(var entity : NERs) {
+                sb.append(entity.toString());
+                sb.append(", ");
+            }
+            sb.deleteCharAt(sb.length() - 1);
+            sb.append("]\n");
         }
-        sb.deleteCharAt(sb.length() - 1);
-        sb.append("]\n");
         return sb.toString();
     }
 }

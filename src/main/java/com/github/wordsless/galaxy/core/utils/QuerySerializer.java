@@ -22,30 +22,43 @@
  * SOFTWARE.
  */
 
-package com.github.wordsless.galaxy.core.orchestrator;
+package com.github.wordsless.galaxy.core.utils;
 
-import com.github.wordsless.galaxy.core.algorithm.sire.SiReEngine;
-import com.github.wordsless.galaxy.core.algorithm.sire.SimilarNode;
-import com.github.wordsless.galaxy.core.algorithm.sire.RelatedNode;
-import com.github.wordsless.galaxy.core.entity.Context;
-import com.github.wordsless.galaxy.core.entity.Document;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 import com.github.wordsless.galaxy.core.entity.Query;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.io.IOException;
 
-public class SiReRAGOrchestrator extends AbstractBasicOrchestrator {
+public class QuerySerializer extends StdSerializer<Query> {
 
-    public static final String KEY_QUERY_VECTOR = "queryVector";
-    public static final String KEY_SIMILAR_ROOT = "similarTreeRoot";
-    public static final String KEY_RELATED_ROOT = "relatedTreeRoot";
+    public QuerySerializer() {
+        this(null);
+    }
 
-    private final SiReEngine engine = new SiReEngine();
+    public QuerySerializer(Class<Query> t) {
+        super(t);
+    }
 
     @Override
-    public List<Map<Query, List<Document>>> retrieve(Context context) {
-        return null;
+    public void serialize(Query query, JsonGenerator gen, SerializerProvider provider) throws IOException {
+        gen.writeStartObject();
+        gen.writeNumberField("sn", query.getSn());
+        gen.writeStringField("text", query.getText());
+
+        // 序列化 NERs → 使用定制的 Entity 序列化器
+        gen.writeFieldName("NERs");
+        gen.writeStartArray();
+        for (Query.Entity entity : query.getNERs()) {
+            provider.defaultSerializeValue(entity, gen);
+        }
+        gen.writeEndArray();
+
+        // 序列化候选主题
+        gen.writeFieldName("candidateTopics");
+        provider.defaultSerializeValue(query.getCandidateTopics(), gen);
+
+        gen.writeEndObject();
     }
 }
