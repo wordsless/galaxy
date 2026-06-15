@@ -1,0 +1,90 @@
+@startuml DMQR-RAG_DetailedActivityDiagram
+' ==================== 样式配置 ====================
+skinparam activity {
+    BackgroundColor #f7fbff
+    BorderColor #1a5276
+    FontName "Microsoft YaHei"
+}
+skinparam decision {
+    BackgroundColor #fff8e1
+    BorderColor #e67e22
+}
+skinparam partition {
+    BorderColor #2980b9
+    BackgroundColor #eaf2f8
+    FontStyle bold
+}
+skinparam note {
+    BackgroundColor #fef9e7
+    BorderColor #f1c40f
+}
+
+start
+
+:接收用户原始查询 q;
+
+partition "自适应策略选择 (Section 3.2.2)" {
+    :将策略池 RS = {GQR, KWR, PAR, CCE, ...} 的描述
+    作为上下文信息加入到提示中;
+    :采用少样本学习 (few-shot)
+    提供多个“查询-适用策略”示例;
+    :调用 LLM (可配置为 GPT-4 / Llama3 等)
+    判定当前查询 q 适用的策略子集;
+    note right
+        输出示例: {GQR, PAR}
+        或 {GQR, KWR, CCE}
+        平均数量约 2.5 个 (图2)
+    end note
+    :获取选中的策略列表 Strategies = [RS₁, RS₂, ..., RSₘ] (m ≤ |RS|);
+}
+
+if (Strategies 是否为空?) then (是)
+    :仅使用原始查询作为 q' = {q};
+    note right: 原始查询保留在策略池中 (Table 1 OQR 表现有效)
+else (否)
+    :初始化重写查询集合 Q_rewritten = {q};
+    :针对 Strategies 中的每一个策略，
+    动态创建并行执行分支;
+    fork
+        :策略 RS₁ 重写;
+        note right
+            **GQR**: 去噪、澄清意图，保留全部信息
+            **KWR**: 提取名词/主语为核心关键词
+            **PAR**: 生成伪答案，语义扩充
+            **CCE**: 提取核心内容，丢弃冗余细节
+        end note
+    fork again
+        :策略 RS₂ 重写;
+    fork again
+        :... (根据实际选中的策略数量扩展);
+    end fork
+    :收集所有并行重写的结果，加入 Q_rewritten;
+    :对 Q_rewritten 中的查询进行去重（语义近似或完全相同）;
+    note right: 避免相同查询重复检索，节省资源
+endif
+
+partition "检索与重排 (Section 3.1)" {
+    :对于 Q_rewritten 中的每个查询 q'_i，
+    调用 **Bing 搜索引擎** 检索;
+    note right
+        每个查询独立检索 Top-10 文档
+        总共最多 50 篇原始文档
+    end note
+    :合并所有检索结果，得到文档集合 D;
+    :使用 **BAAI-BGE-reranker** 对 D 中所有文档进行
+    相关性打分并降序排序，得到 D';
+    :截取排序后的前 K 篇文档 (默认 K=5) 作为上下文 C;
+}
+
+partition "答案生成" {
+    :将原始用户查询 q 和上下文 C 拼接，
+    构造 LLM 输入 prompt;
+    :调用生成 LLM (如 GPT-4) 进行推理;
+    :得到最终答案 A;
+}
+
+:返回答案 A 给用户;
+
+stop
+
+@enduml

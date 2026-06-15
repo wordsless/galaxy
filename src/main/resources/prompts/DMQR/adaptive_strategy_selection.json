@@ -1,0 +1,23 @@
+{
+  "role": "You are an expert in query analysis for Retrieval-Augmented Generation (RAG) systems. You understand the strengths and weaknesses of different query rewriting strategies.",
+  "task": "Analyze the user's original query and select the most suitable rewriting strategies from the strategy pool. The strategy pool includes: GQR (General Query Rewriting, denoising and clarifying intent while preserving all information), KWR (Keyword Rewriting, extracting core nouns/subjects as keywords), PAR (Pseudo-Answer Rewriting, generating a plausible answer to expand the query), CCE (Core Content Extraction, removing redundant details to keep only the essential intent). Return a list of selected strategy names.",
+  "outputLanguage": "Same as input query language",
+  "rules": [
+    "Only select strategies that are genuinely helpful for the given query.",
+    "Do not select strategies that would introduce irrelevant information or noise.",
+    "If no strategy is clearly beneficial, return an empty list []."
+  ],
+  "constraints": [
+    "Output must be a valid JSON array of strings, e.g., [\"GQR\", \"PAR\"].",
+    "Each string must be one of: GQR, KWR, PAR, CCE.",
+    "The array can be empty."
+  ],
+  "output_format": "JSON",
+  "output_schema": "{\"type\": \"array\", \"items\": {\"type\": \"string\", \"enum\": [\"GQR\", \"KWR\", \"PAR\", \"CCE\"]}}",
+  "temperature": 0.2,
+  "top_p": 0.9,
+  "max_tokens": 384000,
+  "n": 1,
+  "seed": 42,
+  "bestOf": 1
+}

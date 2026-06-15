@@ -1,0 +1,88 @@
+@startuml RQ_RAG_Inference_Activity_Tree_Revised
+!pragma useVerticalIf on
+skinparam activity {
+  BackgroundColor #f0f7ff
+  BorderColor #0066cc
+  FontName Arial
+}
+skinparam decision {
+  BackgroundColor #fff7e6
+  BorderColor #fa8c16
+}
+
+title RQ-RAG 推理阶段树形轨迹生成与选择活动图（修正版 - 正确分支扩展）
+
+legend right
+  | 符号 | 含义 |
+  | 活跃路径 | 尚未闭合、可继续扩展的推理轨迹（每条路径独立维护 depth） |
+  | 闭合路径 | 已生成答案并停止扩展的轨迹 |
+  | M | 每路径每步采样的最大候选动作数（默认3） |
+  | 困惑度阈值 | 用于最终轨迹选择或路径级剪枝 |
+endlegend
+
+start
+
+:接收用户原始 Query;
+:初始化候选推理路径集合;
+:将原始查询作为第一条活跃路径加入集合（depth=0）;
+:设置全局最大深度 max_depth
+  (单跳=2, HotpotQA=2, 2Wiki=4, MuSiQue=4);
+:设定每路径每步候选动作采样数 M=3;
+
+repeat
+  :取一条当前活跃路径（若并行处理，需遍历）;
+
+  if (当前路径.depth < max_depth?) then (是)
+    :调用 RQ-RAG Generator，
+      输入：原问题 + 该路径的历史 refined queries + 已检索上下文;
+    :Generator 输出 K 个候选动作
+      （包括 NoRetrieval/Generate, Rewrite, Decompose, Disambiguate）;
+    :根据动作概率 / logits 选择 Top-M 个候选动作;
+
+    :记录当前路径为“父路径”（准备扩展）;
+
+    repeat
+      :依次处理每个选中的候选动作;
+      if (动作类型 == NoRetrieval / Generate) then
+        :基于当前路径上下文生成候选答案;
+        :创建一条新的闭合路径（继承父路径历史，标记已生成答案）;
+      elseif (动作类型 == Rewrite) then
+        :生成单条 refined query;
+        :创建新路径（复制父路径上下文，depth = 父.depth + 1）;
+        :调用检索器取 Top-k 上下文;
+        :将检索上下文追加到新路径;
+      elseif (动作类型 == Decompose) then
+        :生成多个子问题 refined queries（论文中通常 2~3 个）;
+        :对 **每个子问题** 独立创建一条新路径（复制父路径上下文）;
+        :每条新路径分别检索对应子问题的上下文并追加;
+        :（注意：子问题之间独立扩展，不合并）;
+      elseif (动作类型 == Disambiguate) then
+        :生成多个消歧候选 refined queries（每个对应一种意图）;
+        :对 **每个消歧候选** 独立创建一条新路径;
+        :每条新路径分别检索对应上下文并追加;
+      endif
+    repeat while (还有未处理的选中候选动作?) is (是) not (否)
+
+    :所有子路径创建完毕后，标记父路径为“已扩展”（不再参与后续循环）;
+  else (否)
+    :达到最大深度，无法继续扩展;
+    :基于当前路径上下文生成候选答案;
+    :标记该路径为闭合路径;
+  endif
+
+repeat while (仍存在未处理的活跃路径?) is (是) not (否)
+
+:从所有闭合路径中汇总候选答案及对应的路径信息（困惑度/置信度等）;
+switch (候选轨迹选择策略)
+  case (PPL-based)
+    :选择困惑度最低的轨迹答案;
+  case (Confidence-based)
+    :选择生成置信度最高的轨迹答案;
+  case (Ensemble-based)
+    :对多条轨迹答案投票/集成;
+endswitch
+:输出最终答案;
+
+stop
+
+@enduml

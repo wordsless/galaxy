@@ -1,0 +1,46 @@
+@startuml EVO-RAG_Inference_Activity
+!pragma useVerticalIf on
+skinparam activity {
+  Background #f5f9ff
+  Border #2962ff
+  ArrowColor #1565c0
+  FontName "Microsoft YaHei"
+  FontSize 10
+}
+skinparam diamond {
+  Background #e8f0fe
+}
+
+start
+:接收用户原始问题;
+:初始化推理状态\n步数t=0、历史查询、证据集合;
+
+repeat
+  :获取当前推理阶段;
+  :动态调度器更新7维奖励权重;
+  :动作决策模块选择执行动作;
+
+if (动作类型) then (SEARCH)
+  :查询改写生成子查询;
+  :调用检索器获取文档证据;
+  :更新历史查询与证据集;
+  :计算检索奖励、重复查询惩罚;
+else if (BACKTRACK) then (BACKTRACK)
+  :回退至上一轮推理状态;
+  :计算回溯行为惩罚;
+else if (ANSWER) then (ANSWER)
+  :基于已有证据生成最终答案;
+  :计算答案正确性奖励;
+  stop
+else (REFUSE)
+  :判定证据不足，拒绝回答;
+  :计算拒答行为奖励;
+  stop
+endif
+
+:推理步数 t = t + 1;
+repeat while (t < 最大推理步数)
+
+:步数超限，终止推理并拒答;
+stop
+@enduml

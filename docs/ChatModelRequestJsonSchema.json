@@ -1,0 +1,123 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/wordsless/galaxy/ChatModelRequest.schema.json",
+  "title": "ChatModelRequest",
+  "description": "A complete request to a Large Language Model (LLM) combining prompt engineering components with generation parameters",
+  "type": "object",
+  "properties": {
+    "role": {
+      "description": "Role definition (e.g., \"You are a helpful assistant\")",
+      "type": "string"
+    },
+    "task": {
+      "description": "Task description (e.g., \"Summarize the following text\")",
+      "type": "string"
+    },
+    "outputLanguage": {
+      "description": "Desired output language (e.g., \"English\", \"Chinese\")",
+      "type": "string"
+    },
+    "rawQuery": {
+      "description": "The raw query or input text (Query type, assumed to be object)",
+      "type": "object"
+    },
+    "rules": {
+      "description": "List of behavioral rules the LLM must follow",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "constraints": {
+      "description": "Additional constraints (e.g., length limits, forbidden content)",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "output_format": {
+      "description": "Structured output format specification",
+      "type": "string"
+    },
+    "output_schema": {
+      "description": "Structured output schema specification",
+      "type": "string"
+    },
+    "temperature": {
+      "description": "Sampling temperature (0.0 - 2.0). Higher = more random, lower = more deterministic.",
+      "type": "number",
+      "default": 0.7,
+      "minimum": 0.0,
+      "maximum": 2.0
+    },
+    "top_p": {
+      "description": "Nucleus sampling threshold (0.0 - 1.0). Only tokens with cumulative probability >= topP are considered.",
+      "type": "number",
+      "default": 1.0,
+      "minimum": 0.0,
+      "maximum": 1.0
+    },
+    "max_tokens": {
+      "description": "Maximum number of tokens to generate. null = model's maximum allowed.",
+      "type": "integer",
+      "exclusiveMinimum": 0
+    },
+    "presencePenalty": {
+      "description": "Presence penalty (-2.0 - 2.0). Positive values discourage repeating tokens already present.",
+      "type": "number",
+      "default": 0.0,
+      "minimum": -2.0,
+      "maximum": 2.0
+    },
+    "frequencyPenalty": {
+      "description": "Frequency penalty (-2.0 - 2.0). Positive values discourage frequent token repetition.",
+      "type": "number",
+      "default": 0.0,
+      "minimum": -2.0,
+      "maximum": 2.0
+    },
+    "n": {
+      "description": "Number of completion choices to generate per prompt.",
+      "type": "integer",
+      "default": 1,
+      "minimum": 1
+    },
+    "stream": {
+      "description": "Whether to stream partial results as they are generated.",
+      "type": "boolean",
+      "default": false
+    },
+    "logprobs": {
+      "description": "Whether to return log probabilities of the generated tokens.",
+      "type": "boolean",
+      "default": false
+    },
+    "echo": {
+      "description": "Whether to echo the prompt in the response.",
+      "type": "boolean",
+      "default": false
+    },
+    "seed": {
+      "description": "Deterministic seed for reproducible results (not supported by all providers).",
+      "type": "integer",
+      "format": "int64"
+    },
+    "bestOf": {
+      "description": "Number of completions generated server-side to choose the best one. Requires provider support.",
+      "type": "integer",
+      "default": 1,
+      "minimum": 1
+    },
+    "logitBias": {
+      "description": "Token bias adjustments: map token IDs to bias values (-100 to 100). Positive makes token more likely, negative less likely.",
+      "type": "object",
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": -100,
+        "maximum": 100
+      }
+    }
+  },
+  "additionalProperties": false,
+  "description": "Validation rules align with ChatModelRequest.validate() method in Java class"
+}

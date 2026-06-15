@@ -1,0 +1,55 @@
+@startuml DMQR-RAG_ComponentDiagram
+' 样式配置
+skinparam component {
+    BackgroundColor #f0f8ff
+    BorderColor #2c3e50
+}
+skinparam package {
+    BackgroundColor #e8f4fd
+}
+skinparam arrow Color #34495e
+
+' 顶层包划分
+package UserInputLayer <<Layer>> {
+    component UserQuery as "User Query\n原始用户查询"
+}
+
+package DMQR_Core <<CoreModule>> {
+    component AdaptiveSelector as "Adaptive Selector\n自适应策略选择器"
+
+    package RewriteStrategyPool <<StrategyPool>> {
+        component GQR as "GQR\n通用查询重写"
+        component KWR as "KWR\n关键词重写"
+        component PAR as "PAR\n伪答案重写"
+        component CCE as "CCE\n核心内容提取"
+    }
+
+    component QuerySetMerger as "Query Set Merger\n多查询合并去重器"
+}
+
+package RetrievalPipeline <<RetrievalLayer>> {
+    component SearchRetriever as "Search Retriever\n稠密/网页检索器"
+    component DocumentReranker as "BGE Reranker\n文档重排器"
+    database VectorKB as "Vector Knowledge Base\n向量知识库/网页索引"
+}
+
+package GenerationLayer <<LLMLayer>> {
+    component LLM as "LLM Generator\n大模型问答生成器"
+}
+
+' 数据流连线
+UserQuery --> AdaptiveSelector : 输入原始查询
+AdaptiveSelector --> RewriteStrategyPool : 下发选中策略
+
+GQR --> QuerySetMerger
+KWR --> QuerySetMerger
+PAR --> QuerySetMerger
+CCE --> QuerySetMerger
+
+QuerySetMerger --> SearchRetriever : 批量重写查询
+SearchRetriever <--> VectorKB : 检索/读取文档
+SearchRetriever --> DocumentReranker : 候选文档集合
+DocumentReranker --> LLM : Top-K 相关文档
+LLM --> UserInputLayer : 输出最终回答
+
+@enduml

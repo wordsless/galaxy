@@ -1,0 +1,43 @@
+@startuml QOQA-Activity-Diagram
+skinparam backgroundColor #FDFBF9
+skinparam activity {
+    BackgroundColor #FFF8E1
+    BorderColor #F57C00
+}
+skinparam decision {
+    BackgroundColor #E3F2FD
+    BorderColor #0288D1
+}
+skinparam swimlane {
+    FontName "Microsoft YaHei"
+}
+
+start
+
+:输入用户原始查询 Q;
+
+:调用检索器\n从文档库召回 Top-5 文档;
+
+:LLM 生成 **初始 3 条改写查询**;
+
+:送入对齐评分器\n计算 BM25 / Dense / Hybrid 分数;
+
+:将 (查询, 分数) 存入查询桶;
+
+:按分数排序，选取 Top-3 高分查询;
+
+repeat
+    :将原始查询 + 高分查询 + 分数\n送入 LLM 生成 **1 条新改写查询**;
+
+    :新查询评分并加入查询桶;
+
+    :更新查询桶排序;
+repeat while (迭代轮数 < 50?) is (是)
+:否;
+
+:选择分数最高的查询作为最终优化查询;
+
+:送入 RAG 检索流程;
+
+stop
+@enduml

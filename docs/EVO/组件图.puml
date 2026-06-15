@@ -1,0 +1,83 @@
+@startuml EVO-RAG_Component_Diagram
+' 兼容旧版语法，去掉不支持的属性
+skinparam componentStyle rectangle
+skinparam component {
+  BackgroundColor #f7fbff
+  BorderColor #2c3e50
+  FontName "Microsoft YaHei"
+  FontSize 10
+}
+skinparam interface {
+  BackgroundColor #e3f2fd
+  BorderColor #1976d2
+}
+skinparam arrow {
+  Color #424242
+  FontSize 9
+}
+skinparam database {
+  BackgroundColor #f1f8e9
+}
+skinparam cloud {
+  BackgroundColor #fff3e0
+}
+
+' 接口改用英文别名避免中文兼容性问题
+() "权重配置接口" as Iface_Weight
+() "动作调用接口" as Iface_Action
+() "检索服务接口" as Iface_Retrieve
+() "奖励反馈接口" as Iface_Reward
+() "策略更新接口" as Iface_Policy
+
+' 外部系统
+cloud "LLM 骨干模型" as LLM_Base
+database "外部知识库" as KnowledgeBase
+
+' 分层分组
+package "调度控制层" {
+  component "双阶段课程控制器" as CurriculumCtrl
+  component "动态权重调度器" as WeightScheduler
+}
+
+package "推理执行层" {
+  component "动作决策智能体" as ActionAgent
+  component "查询改写模块" as QueryRewrite
+  component "RRF-BGE 融合检索器" as Retriever
+}
+
+package "训练优化层" {
+  component "多头偏好奖励模型\n(7维单步奖励)" as MultiHeadReward
+  component "DPO 策略优化器" as DPO_Optimizer
+}
+
+' ========== 依赖与连线关系 ==========
+' 调度层内部
+CurriculumCtrl --> WeightScheduler : 下发阶段指令
+WeightScheduler --> Iface_Weight : 输出权重参数
+Iface_Weight --> MultiHeadReward : 配置奖励权重
+
+' 推理层主链路
+ActionAgent --> Iface_Action : 输出动作指令
+Iface_Action --> QueryRewrite : 触发查询改写
+QueryRewrite --> Iface_Retrieve : 发起检索请求
+Iface_Retrieve --> Retriever
+Retriever --> KnowledgeBase : 读取证据
+KnowledgeBase --> Retriever : 返回文档
+Retriever --> ActionAgent : 回传检索结果
+
+' 奖励 & 训练链路
+MultiHeadReward --> Iface_Reward : 输出单步奖励
+Iface_Reward --> ActionAgent : 行为打分
+MultiHeadReward --> DPO_Optimizer : 输入偏好轨迹对
+DPO_Optimizer --> Iface_Policy : 推送更新参数
+Iface_Policy --> ActionAgent : 同步策略
+
+' 全局基座依赖
+ActionAgent ..> LLM_Base : 依赖基座推理能力
+QueryRewrite ..> LLM_Base : 依赖基座改写能力
+
+' 补充注释
+note right of MultiHeadReward : 包含检索、重复、回溯、拒答、步数、答案正确性等7类奖励头
+note left of WeightScheduler : 权重随推理步数动态插值，平滑切换探索/精修阶段
+
+@enduml

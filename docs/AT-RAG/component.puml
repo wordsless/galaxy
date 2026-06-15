@@ -1,0 +1,43 @@
+@startuml
+' AT-RAG 原始论文组件图（修正版）
+' 明确声明为组件图，解决误判为sequence的问题
+skinparam component {
+  BackgroundColor #f0f8ff
+  BorderColor #2c3e50
+  ArrowColor #2c3e50
+}
+skinparam interface {
+  BackgroundColor #e8f4f8
+}
+
+' 顶层编排核心组件
+component "AT-RAG流程编排器" as AtRagOrchestrator {
+}
+
+' 论文原生六大核心组件
+component "主题分配器\n(BERTopic)" as TopicAssigner
+component "主题过滤检索器" as TopicFilteredRetriever
+component "CoT迭代推理模块" as CotReasoningModule
+component "LLM答案生成器" as AnswerGenerator
+component "答案打分校验器" as AnswerGrader {
+  component "有用性打分器" as UsefulnessGrader
+  component "幻觉一致性打分器" as HallucinationGrader
+}
+component "迭代查询重写器" as QueryRewriter
+
+' 依赖关联 严格按论文逻辑
+AtRagOrchestrator --> TopicAssigner : 调用主题归类
+AtRagOrchestrator --> TopicFilteredRetriever : 主题约束检索
+AtRagOrchestrator --> CotReasoningModule : 生成推理链
+AtRagOrchestrator --> AnswerGenerator : 生成候选答案
+AtRagOrchestrator --> AnswerGrader : 答案双维度打分
+AtRagOrchestrator --> QueryRewriter : 不达标触发重写
+
+' 打分器内部组合
+AnswerGrader *-- UsefulnessGrader
+AnswerGrader *-- HallucinationGrader
+
+' 数据流闭环
+AnswerGrader --> AtRagOrchestrator : 打分结果回传
+QueryRewriter --> AtRagOrchestrator : 新查询进入下一轮
+@enduml

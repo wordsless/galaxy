@@ -1,0 +1,58 @@
+@startuml SiReRAG_Component_Diagram
+' 组件图：SiReRAG 双树检索系统
+skinparam component {
+    BackgroundColor #f9f9f9
+    BorderColor #333333
+    FontName 微软雅黑
+}
+skinparam rectangle {
+    BackgroundColor #e6f7ff
+    BorderColor #1890ff
+}
+
+title SiReRAG 双树检索组件图
+
+' 外部入口
+[用户查询] as Query
+
+' 向量层
+rectangle "向量生成层" {
+    [查询向量化] as QueryVec
+}
+
+' 双树检索核心
+rectangle "SiReRAG 检索核心" {
+    [SiReRAG 引擎] as Engine
+
+    rectangle "双树独立存储" {
+        [相似树 SimilarTree] as STree
+        [关联树 RelatedTree] as RTree
+    }
+
+    rectangle "双路并行检索" {
+        [相似树检索器] as SRet
+        [关联树检索器] as RRet
+    }
+
+    [结果融合器] as Fusion
+}
+
+' 输出
+[检索上下文结果] as Result
+
+' 调用关系
+Query --> QueryVec
+QueryVec --> Engine
+
+Engine --> SRet
+Engine --> RRet
+
+STree --> SRet
+RTree --> RRet
+
+SRet --> Fusion
+RRet --> Fusion
+
+Fusion --> Result
+
+@enduml

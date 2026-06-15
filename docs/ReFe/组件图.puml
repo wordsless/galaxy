@@ -1,0 +1,104 @@
+@startuml RaFe_Component_Annotated
+skinparam component {
+  BackgroundColor #f0f8ff
+  BorderColor #2c3e50
+  FontName "Microsoft YaHei"
+}
+skinparam note {
+  BackgroundColor #fffacd
+  BorderColor #daa520
+  FontName "Microsoft YaHei"
+}
+skinparam interface {
+  BackgroundColor #e8f4f8
+}
+skinparam arrow {
+  Color #34495e
+  Thickness 1.2
+}
+
+interface QueryInput <<输入>>
+interface RewriteQ <<改写查询>>
+interface DocSet <<文档集合>>
+
+component "原始查询源" as QSource
+component "数据集模块" as DataMod {
+  component "SFT训练集" as SFT_Data
+  component "RL反馈集" as RL_Data
+}
+
+component "查询重写模型" as RewriteMod {
+  component "基础底座模型" as BaseModel
+  component "SFT微调单元" as SFT_Unit
+  note right of SFT_Unit
+    **SFT**
+    - 全称：Supervised Fine-Tuning
+    - 中文：监督微调
+    - 说明：
+      1. 用「原始查询-改写查询」标注数据
+         对底座模型进行有监督训练
+      2. 为后续强化学习提供稳定的冷启动
+  end note
+
+  component "离线RL单元" as Offline_RL {
+    component "KTO" as KTO_Comp
+    component "DPO" as DPO_Comp
+    note right of Offline_RL
+      **RL**
+      - 全称：Reinforcement Learning
+      - 中文：强化学习
+      - 说明：
+        1. 利用重排器的排名反馈信号优化模型
+        2. 目标是让模型生成更利于检索的改写查询
+    end note
+
+    note right of KTO_Comp
+      **KTO**
+      - 全称：Kahneman-Tversky Optimization
+      - 中文：卡尼曼-特沃斯基优化
+      - 说明：
+        1. DPO的改进版本，支持非成对偏好数据
+        2. 数据利用率更高，论文中效果优于DPO/PPO
+    end note
+
+    note right of DPO_Comp
+      **DPO**
+      - 全称：Direct Preference Optimization
+      - 中文：直接偏好优化
+      - 说明：
+        1. 主流RLHF替代方案，无需PPO的复杂训练
+        2. 基于「好/坏改写」偏好对直接优化模型
+    end note
+  }
+}
+
+component "检索重排链路" as IR_Rerank {
+  component "检索引擎" as Search
+  component "BGE-Reranker重排器" as Reranker
+}
+
+component "奖励分数计算" as RewardCalc
+component "上线模型" as Online_Model
+component "RAG问答应用" as RAG_Service
+
+' 线下训练链路
+QSource --> DataMod : 供给原始查询
+SFT_Data --> SFT_Unit
+RL_Data --> Offline_RL
+SFT_Unit --> BaseModel : 初始化权重
+BaseModel --> Offline_RL : 前向生成改写查询
+BaseModel --> RewriteQ
+RewriteQ --> Search
+Search --> Reranker
+Reranker --> RewardCalc : 输出排名分数
+RewardCalc --> Offline_RL : 回传奖励信号
+Offline_RL --> Online_Model : 收敛后导出模型
+
+' 线上推理链路
+QSource --> Online_Model : 线上用户查询
+Online_Model --> RewriteQ
+RewriteQ --> Search
+Search --> Reranker
+Reranker --> DocSet
+DocSet --> RAG_Service : 送入下游问答
+@enduml

@@ -1,0 +1,41 @@
+@startuml EVO-RAG_Training_Activity
+!pragma useVerticalIf on
+skinparam activity {
+  Background #f0f8f4
+  Border #2e7d32
+  ArrowColor #2e7d32
+  FontName "Microsoft YaHei"
+  FontSize 10
+}
+skinparam diamond {
+  Background #e8f5e9
+}
+
+start
+:初始化模型\nLLM基座 + 监督学习预热策略;
+:加载训练集、验证集;
+
+partition 阶段一：探索阶段 (Discovery) {
+  repeat
+    :批量采样多跳推理轨迹;
+    :多头奖励模型计算单步奖励;
+    :构建正负偏好样本对;
+    :DPO 更新策略 LoRA 参数;
+    :验证集评估 EM / F1 指标;
+  repeat while (指标未收敛)
+}
+
+partition 阶段二：精修阶段 (Refinement) {
+  :切换权重调度规则\n提升效率、准确率权重;
+  repeat
+    :批量采样推理轨迹;
+    :动态分配奖励权重;
+    :更新多头偏好奖励模型;
+    :DPO 迭代优化策略;
+    :验证集评估 EM / F1 指标;
+  repeat while (指标连续无提升?) is (是) not (否)
+}
+
+:保存最终 EVO-RAG 模型权重;
+stop
+@enduml

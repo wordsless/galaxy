@@ -1,0 +1,38 @@
+@startuml RaFe_Offline_Train_Fixed
+skinparam activity {
+  BackgroundColor #f5f9ff
+  BorderColor #2c3e50
+  ArrowColor #34495e
+  FontName "Microsoft YaHei"
+}
+skinparam partition {
+  BackgroundColor #eef5fb
+}
+
+partition "阶段1：SFT 冷启动训练" {
+start
+:收集原始查询样本;
+:大模型生成改写对\n构建SFT数据集;
+:底座模型执行监督微调;
+:得到SFT初始化模型;
+}
+
+partition "阶段2：离线RL反馈训练（KTO/DPO）" {
+:加载SFT初始化模型;
+repeat
+  :批量输入训练集查询;
+  :模型生成改写查询;
+  :检索引擎召回Top5文档;
+  :重排器计算相关性分数;
+  :按分数划分优/劣改写样本;
+  :构造偏好训练数据;
+  :执行 KTO / DPO 模型更新;
+repeat while (模型未收敛?) is (否)
+-> 是;
+}
+
+partition "模型导出" {
+:导出最终RaFe重写模型;
+end
+}
+@enduml

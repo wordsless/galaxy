@@ -1,0 +1,52 @@
+@startuml RQ_RAG_Training_Activity_Revised
+!pragma useVerticalIf on
+skinparam activity {
+  BackgroundColor #E6F4FF
+  BorderColor #165DFF
+  FontName Arial
+}
+skinparam decision {
+  BackgroundColor #FFF2CC
+  BorderColor #FAAD14
+}
+skinparam endnode {
+  BackgroundColor #F0FFF4
+}
+
+title RQ-RAG 训练数据构造与 SFT 流程活动图
+
+start
+:汇总多源原始数据集\n单跳QA / 多跳QA / 歧义QA / 多轮对话;
+:清洗、去重并过滤异常样本;
+
+repeat
+  :读取单条原始样本\nQuestion + Origin Answer + 可用候选文档;
+  :依据数据集类型与模板确定任务类别\nNo Retrieval / Rewrite / Decompose / Disambiguate;
+
+  if (需要生成 refined query?) then (是)
+    :调用 ChatGPT 按模板生成 refined queries;
+
+    if (多跳QA且有候选文档?) then (是)
+      :使用 BM25 从候选文档选择相关上下文;
+    else (否)
+      :调用 DuckDuckGo 检索 Top-3 snippets;
+    endif
+
+    :ChatGPT 基于检索上下文重写答案\n得到 context-grounded answer;
+  else (否)
+    :保留原始问题作为输入;
+    :生成无需检索的目标回答;
+  endif
+
+  :组装训练序列\nInstruction + Special Tokens + Refined Query + Context + Answer;
+repeat while (仍有未处理样本?) is (是)
+
+:汇总约 42,810 条 RQ-RAG 训练样本;
+:划分训练集与验证集;
+:加载 Llama2-7B 基座模型;
+:配置 SFT 超参数\nlr=2e-5, epoch=1, seq_len=4096;
+:执行自回归 SFT\n最大化训练序列似然;
+:在验证集上评估并保存 RQ-RAG Generator;
+
+end
+@enduml

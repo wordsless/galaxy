@@ -1,0 +1,31 @@
+@startuml RAGStar_Activity_Diagram
+title RAG‑Star 递归检索算法活动图
+start
+
+:用户输入原始查询 Query;
+:查询向量化生成 queryVector;
+:加载预构建 RAG‑Star 文档层次树;
+:初始化 MCTS 搜索参数;
+
+:从根节点开始递归遍历;
+repeat :MCTS 遍历文档树节点
+    :1.计算节点语义相似度;
+    :2.读取节点固有可信度得分;
+    :3.计算综合匹配得分;
+    if (综合得分 ≥ 验证阈值?) then (通过)
+        :将节点内容加入候选上下文;
+        if (当前节点是叶子节点?) then (是)
+            :停止当前分支递归;
+        else (否)
+            :MCTS‑UCT 择优选择高价值子节点;
+        endif
+    else (不通过)
+        :剪枝当前分支，放弃后续子节点;
+    endif
+repeat while (存在未遍历的高价值子节点)
+
+:候选上下文去重、按得分排序;
+:输出最终高可信检索上下文;
+
+stop
+@enduml

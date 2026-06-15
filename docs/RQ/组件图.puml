@@ -1,0 +1,71 @@
+@startuml RQ_RAG_Component_Revised
+skinparam component {
+  BackgroundColor #f9f9f9
+  BorderColor #222222
+  FontName Arial
+}
+skinparam rectangle {
+  BackgroundColor #e6f7ff
+  BorderColor #1890ff
+  FontName Arial
+}
+skinparam database {
+  BackgroundColor #fff7e6
+  BorderColor #fa8c16
+}
+
+title RQ-RAG 系统组件图
+
+package "外部输入与检索资源" {
+  [用户查询\nUser Query] as USER
+  [检索器\nDuckDuckGo / BM25 / Embedding Retriever] as RET
+  database "文档库 / 候选文档\nDocument Corpus" as CORPUS
+}
+
+package "RQ-RAG 推理核心" {
+  [RQ-RAG Generator\nLlama2-7B SFT] as GEN
+  [控制 Token 决策\nNo Retrieval / Rewrite / Decompose / Disambiguate] as CTRL
+  [Refined Query 生成器] as RQ
+  [多路径树形轨迹管理\nTree Trajectory Sampler] as TREE
+  [候选答案生成器\nAnswer Generator] as AG
+  [轨迹选择器\nPPL / Confidence / Ensemble] as SEL
+  [最终答案] as FINAL
+
+  GEN -[hidden] CTRL
+  CTRL -[hidden] RQ
+  RQ -[hidden] TREE
+  TREE -[hidden] AG
+  AG -[hidden] SEL
+}
+
+package "训练数据构造" {
+  [原始 QA / 对话数据集] as RAW
+  [ChatGPT Query 标注器] as QANN
+  [检索上下文收集器] as CTX
+  [ChatGPT 答案重写器] as ARW
+  [RQ-RAG Instruction Dataset\n约 42,810 samples] as INST
+  [SFT 训练流程] as SFT
+}
+
+USER --> GEN
+GEN --> CTRL
+CTRL --> RQ : 需要检索时
+RQ --> RET
+RET --> CORPUS
+CORPUS --> RET
+RET --> TREE : Top-k contexts
+TREE --> GEN : 追加上下文并继续解码
+GEN --> AG : 终止检索/达到深度上限
+AG --> SEL
+SEL --> FINAL
+
+RAW --> QANN
+QANN --> CTX : refined queries
+CTX --> RET
+CTX --> ARW : retrieved contexts
+RAW --> ARW : original answers / questions
+ARW --> INST
+INST --> SFT
+SFT --> GEN : 微调权重
+
+@enduml

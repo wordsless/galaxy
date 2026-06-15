@@ -1,0 +1,134 @@
+package com.github.wordsless.galaxy.core.vectordb;
+
+import com.github.wordsless.galaxy.core.TextEmbeddingService;
+import com.github.wordsless.galaxy.core.exception.EmbeddingException;
+import dev.langchain4j.data.document.Metadata;
+import dev.langchain4j.data.embedding.Embedding;
+import dev.langchain4j.data.segment.TextSegment;
+import dev.langchain4j.store.embedding.EmbeddingMatch;
+import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
+import dev.langchain4j.store.embedding.MilvusEmbeddingStore;
+import lombok.Setter;
+import org.springframework.stereotype.Component;
+import java.util.List;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+/**
+ * 基于 LangChain4J 标准 MilvusEmbeddingStore 实现
+ * 对齐官方单元测试用法，统一版本，无原生Milvus SDK依赖
+ */
+public class MilvusVectorDB implements VectorDB {
+
+    // 向量维度：与 all-minilm-l6-v2-q 模型保持一致(384)
+    private static final int EMB_DIM = 384;
+    // 默认检索返回数量
+    private static final int DEFAULT_TOP_K = 10;
+    // Milvus 存储实例
+    private final MilvusEmbeddingStore embeddingStore;
+
+    /** Spring 注入文本向量化服务 */
+    @Setter
+    private TextEmbeddingService textEmbeddingService;
+
+    /**
+     * 构造方法：初始化 MilvusEmbeddingStore
+     * @param host Milvus 服务地址
+     * @param port Milvus 端口
+     * @param collectionName 集合名称
+     */
+    public MilvusVectorDB(String host, int port, String collectionName) {
+        // 拼接 Milvus URI，格式：http://host:port
+        String milvusUri = String.format("http://%s:%d", host, port);
+
+        // 完全参考官方测试代码构建 MilvusEmbeddingStore
+        this.embeddingStore = MilvusEmbedding.builder()
+                .uri(milvusUri)
+                .collectionName(collectionName)
+                .dimension(EMB_DIM)
+                .retrieveEmbeddingsOn(false) // 检索时不返回向量，提升性能
+                .build();
+    }
+
+    /**
+     * 保存文档链接+正文，向量化后存入Milvus
+     * @param url 文档链接
+     * @param doc 文档正文
+     * @return 数据ID（UUID转为Long）
+     */
+    @Override
+    public Long save(String url, String doc) {
+        if (textEmbeddingService == null) {
+            throw new IllegalStateException("TextEmbeddingService 未完成Spring注入");
+        }
+        try {
+            // 调用外部向量化服务生成向量
+            float[] vector = textEmbeddingService.embed(doc);
+            Embedding embedding = Embedding.from(vector);
+
+            // 元数据：存储url、原文，对应业务字段
+            Metadata metadata = Metadata.create();
+            metadata.put("url", url);
+            metadata.put("passage_text", doc);
+            TextSegment segment = TextSegment.from(doc, metadata);
+
+            // 存入Milvus，返回字符串类型ID
+            String docId = embeddingStore.add(embedding, segment);
+
+            // 将UUID格式字符串ID转为Long，适配接口返回类型
+            return UUID.fromString(doc).getMostSignificantBits();
+        } catch (EmbeddingException e) {
+            throw new RuntimeException("文本向量化失败", e);
+        }
+    }
+
+    /**
+     * 向量检索
+     * @param vectorIndex 查询向量
+     * @return 匹配数据ID列表
+     */
+    @Override
+    public List<Long> search(float[] vectorIndex) {
+        Embedding queryEmbedding = Embedding.from(vectorIndex);
+
+        // 构建检索请求（官方标准写法）
+        EmbeddingSearchRequest searchRequest = EmbeddingSearchRequest.builder()
+                .queryEmbedding(queryEmbedding)
+                .maxResults(DEFAULT_TOP_K)
+                .build();
+
+        // 执行检索
+        List<EmbeddingMatch<Text>> matches = embeddingStore.search(searchRequest).matches();
+
+        // 提取ID并转为Long
+        return matches.stream()
+                .map(EmbeddingMatch::embeddingId)
+                .map(id -> UUID.fromString(id).getMostSignificantBits())
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 文本检索：文本 -> 向量化 -> 向量检索
+     * @param query 查询文本
+     * @return 匹配数据ID列表
+     */
+    @Override
+    public List<Long> search(String query) {
+        if (textEmbeddingService == null) {
+            throw new IllegalStateException("TextEmbeddingService 未完成Spring注入");
+        }
+        try {
+            float[] vector = textEmbeddingService.embed(query);
+            return search(vector);
+        } catch (EmbeddingException e) {
+            throw new RuntimeException("文本检索-向量化失败", e);
+        }
+    }
+
+    /**
+     * 关闭资源（LangChain4J内部自动管理连接，此处仅占位）
+     */
+    public void close() {
+        // 无需手动关闭客户端，框架自动维护生命周期
+    }
+}

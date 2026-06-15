@@ -1,0 +1,37 @@
+# =====================
+# 安全：拒绝秘钥文件
+# =====================
+**/application-local.properties
+**/application-local.yml
+**/application-local.yaml
+*.local.properties
+
+# =====================
+# 构建输出
+# =====================
+target/
+build/
+bin/
+out/
+
+# =====================
+# IDE 文件
+# =====================
+.idea/
+*.iml
+*.ipr
+*.iws
+.classpath
+.project
+.settings/
+
+# =====================
+# 操作系统
+# =====================
+.DS_Store
+Thumbs.db
+
+# =====================
+# 日志
+# =====================
+*.log

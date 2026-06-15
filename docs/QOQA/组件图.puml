@@ -1,0 +1,63 @@
+@startuml QOQA-Component-Diagram
+skinparam componentStyle rectangle
+skinparam backgroundColor #F9F9F9
+skinparam component {
+    BackgroundColor #E3F2FD
+    BorderColor #1976D2
+    FontName "Microsoft YaHei"
+}
+skinparam database {
+    BackgroundColor #FFEBEE
+    BorderColor #D32F2F
+}
+skinparam cloud {
+    BackgroundColor #E8F5E8
+    BorderColor #388E3C
+}
+
+' 外部输入
+[用户原始查询] as UserQuery
+
+' 核心系统包
+package "QOQA 查询优化框架" {
+    [初始检索模块] as Retriever
+    [LLM 查询改写生成器] as LLM
+    [查询-文档对齐评分器] as Scorer
+    [查询桶（Query Bucket）] as Bucket
+    [迭代优化控制器] as Optimizer
+}
+
+' 评分子组件
+package "对齐评分策略" {
+    [BM25 稀疏评分] as BM25
+    [Dense 稠密向量评分] as Dense
+    [Hybrid 混合评分] as Hybrid
+}
+
+' 外部依赖
+cloud "外部 LLM 服务\n(GPT-3.5-Turbo)" as LLMService
+database "文档库\n(Corpus)" as Corpus
+database "向量嵌入模型\n(BGE-base)" as Embedding
+
+' 输出
+[最优优化查询] as BestQuery
+
+' 关系连接
+UserQuery --> Retriever : 输入
+Retriever --> Corpus : 召回 Top-5 文档
+Retriever --> LLM : 传入查询+文档
+
+LLM --> LLMService : 调用生成改写查询
+LLM --> Scorer : 生成查询送入评分
+
+Scorer --> BM25
+Scorer --> Dense
+Scorer --> Hybrid
+Dense --> Embedding : 获取向量
+
+Scorer --> Bucket : 存入(查询+分数)
+Bucket --> Optimizer : 提供高分查询
+Optimizer --> LLM : 迭代输入（多轮）
+
+Optimizer --> BestQuery : 输出最终最优查询
+@enduml

@@ -1,0 +1,19 @@
+@startuml RaFe_Online_Infer
+skinparam activity {
+  BackgroundColor #f5f9ff
+  BorderColor #2c3e50
+  ArrowColor #34495e
+  FontName "Microsoft YaHei"
+}
+
+start
+:接收线上用户原始查询;
+:加载训练好的RaFe模型;
+:生成2~3条改写查询;
+:原始查询 + 改写查询 联合检索;
+:全量召回文档送入重排器;
+:筛选Top5高相关文档;
+:文档送入RAG问答模块;
+:生成并返回最终答案;
+end
+@enduml
